@@ -79,8 +79,8 @@ class HaishengSensorReader(IMUSensorReader):
         """
         readme_sheet = xlrd.open_workbook(readme_xls).sheet_by_index(0)
         file_formal_names = readme_sheet.col_values(1)[2:]
-        file_nums_foot = readme_sheet.col_values(2)[2:16]
-        file_nums_trunk = readme_sheet.col_values(3)[2:16]
+        file_nums_foot = readme_sheet.col_values(2)[2:13]
+        file_nums_trunk = readme_sheet.col_values(3)[2:13]
         sensor_locs = ['r_foot', 'trunk']
         file_nums_all = {sensor_locs[0]: file_nums_foot, sensor_locs[1]: file_nums_trunk}
         for sensor_loc in sensor_locs:

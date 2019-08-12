@@ -4,6 +4,22 @@ import copy
 TRIAL_NAMES = ['static', 'static trunk', 'baseline 10', 'FPA 10', 'trunk 10', 'baseline 12', 'FPA 12', 'trunk 12',
                'baseline 14', 'FPA 14', 'trunk 14']
 
+SUB_AND_TRIALS = {'190803LiJiayi': TRIAL_NAMES, '190806SunDongxiao': TRIAL_NAMES}
+
+SUB_NAMES = tuple(SUB_AND_TRIALS.keys())
+
+SUB_AND_PARAM_TRIALS = copy.deepcopy(SUB_AND_TRIALS)        # trials for parameter calculation
+for key in SUB_AND_PARAM_TRIALS.keys():
+    if 'static' in SUB_AND_PARAM_TRIALS[key]:
+        SUB_AND_PARAM_TRIALS[key].remove('static')
+
+SUB_AND_WALKING_TRIALS = copy.deepcopy(SUB_AND_TRIALS)
+for key in SUB_AND_WALKING_TRIALS.keys():
+    if 'static' in SUB_AND_WALKING_TRIALS[key]:
+        SUB_AND_WALKING_TRIALS[key].remove('static')
+    if 'static trunk' in SUB_AND_WALKING_TRIALS[key]:
+        SUB_AND_WALKING_TRIALS[key].remove('static trunk')
+
 # in Haisheng sensor's column names, x and y are switched to make it the same as Xsens column
 COLUMN_NAMES_HAISHENG = ['hour', 'minute', 'second', 'millisecond', 'acc_y', 'acc_x', 'acc_z', 'gyr_y', 'gyr_x',
                          'gyr_z', 'mag_y', 'mag_x', 'mag_z']
@@ -48,15 +64,6 @@ COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'gray', 'rosybrown', 'firebrick', '
 _10_TRIALS = ('baseline 10', 'FPA 10')
 _12_TRIALS = ('baseline 12', 'FPA 12')
 _14_TRIALS = ('baseline 14', 'FPA 14')
-
-SUB_AND_TRIALS = {}
-
-SUB_NAMES = tuple(SUB_AND_TRIALS.keys())
-
-SUB_AND_WALKING_TRIALS = copy.deepcopy(SUB_AND_TRIALS)
-for key in SUB_AND_WALKING_TRIALS.keys():
-    if 'static' in SUB_AND_WALKING_TRIALS[key]:
-        SUB_AND_WALKING_TRIALS[key].remove(SUB_AND_WALKING_TRIALS[key])
 
 # # The orientation of left foot xsens sensor was wrong
 # XSENS_ROTATION_CORRECTION_NIKE = {

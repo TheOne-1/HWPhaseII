@@ -96,7 +96,7 @@ class ViconReader:
         return self.marker_data_processed_df[marker_name_xyz]
 
     @staticmethod
-    def _get_plate_calibration(file):
+    def _get_plate_calibration(file, plate_num):
         """
         To get force plate calibration.
         A ViconReader object is implemented using force plate 1 data.
@@ -104,16 +104,20 @@ class ViconReader:
         :return: numpy.ndarry
         """
         name_index = file.rfind('\\')
-        plate_file = file[:name_index] + '\\plate1.csv'
+        plate_file = file[:name_index] + '\\plate' + str(plate_num) + '.csv'
         plate_reader = ViconReader(plate_file)
         data_DL = plate_reader.get_marker_data_one_marker('DL').values
         data_DR = plate_reader.get_marker_data_one_marker('DR').values
         data_ML = plate_reader.get_marker_data_one_marker('ML').values
         center_vicon = (data_DL + data_DR) / 2 + (data_DL - data_ML)
         plate_data_raw = plate_reader._get_plate_data_raw_resampled()
-        center_plate = plate_data_raw[['Cx', 'Cy', 'Cz']].values
+        if plate_num == 1:
+            center_plate = plate_data_raw[['Cx', 'Cy', 'Cz']].values
+        elif plate_num == 2:
+            center_plate = plate_data_raw[['Cx.1', 'Cy.1', 'Cz.1']].values
+        else:
+            raise ValueError('Wrong plate number')
         cop_offset = np.mean(center_plate - center_vicon, axis=0)
-        # cop_offset += COP_DIFFERENCE
         return cop_offset
 
     def _get_plate_raw(self):
@@ -132,9 +136,12 @@ class ViconReader:
         """
         plate_data_raw = self._get_plate_raw().values
         # calibrate COP differences between force plate and vicon
-        plate_offsets = self._get_plate_calibration(self._file)
+        plate_offset_1 = self._get_plate_calibration(self._file, 1)
         for channel in range(4, 7):  # Minus the COP offset of the first plate
-            plate_data_raw[:, channel] = plate_data_raw[:, channel] - plate_offsets[channel - 4]
+            plate_data_raw[:, channel] = plate_data_raw[:, channel] - plate_offset_1[channel - 4]
+        plate_offset_2 = self._get_plate_calibration(self._file, 2)
+        for channel in range(10, 13):  # Minus the COP offset of the first plate
+            plate_data_raw[:, channel] = plate_data_raw[:, channel] - plate_offset_2[channel - 10]
 
         # filter the force data
         plate_data = plate_data_raw[:, 1:]

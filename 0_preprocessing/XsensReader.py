@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
-from scipy.signal import butter, filtfilt
-from const import DATA_COLUMNS_XSENS, MOCAP_SAMPLE_RATE, DATA_COLUMNS_IMU, XSENS_ROTATION_CORRECTION_NIKE
+from const import DATA_COLUMNS_XSENS, MOCAP_SAMPLE_RATE, DATA_COLUMNS_IMU
 import xsensdeviceapi.xsensdeviceapi_py36_64 as xda
 from threading import Lock
 import time

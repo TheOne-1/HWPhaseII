@@ -1,12 +1,12 @@
 import numpy as np
-from const import RAW_DATA_PATH, TRIAL_NAMES, MOCAP_SAMPLE_RATE
+from const import RAW_DATA_PATH, TRIAL_NAMES, MOCAP_SAMPLE_RATE,SEGMENT_MARKERS
 import matplotlib.pyplot as plt
 import scipy.interpolate as interpo
 from ViconReader import ViconReader
 
 
 class GyrSimulator:
-    def __init__(self, subject_folder, segment, static_start=0, static_end=8):
+    def __init__(self, subject_folder, segment, sampling_fre, static_start=0, static_end=8):
         """
 
         :param subject_folder: str
@@ -16,13 +16,12 @@ class GyrSimulator:
         :param static_end: int, the end time of calibration
         """
         self._subject_folder = subject_folder
-        nike_static_mat = self.initialize_static_marker_df(TRIAL_NAMES[0], segment).values
-        self._nike_cali_matrix = GyrSimulator.get_marker_cali_matrix(nike_static_mat, static_start, static_end)
-        mini_static_mat = self.initialize_static_marker_df(TRIAL_NAMES[7], segment).values
-        self._mini_cali_matrix = GyrSimulator.get_marker_cali_matrix(mini_static_mat, static_start, static_end)
+        self._sampling_fre = sampling_fre
+        static_mat = self.initialize_static_marker_df(TRIAL_NAMES[0], segment).values
+        self._cali_matrix = GyrSimulator.get_marker_cali_matrix(static_mat, static_start, static_end)
 
     @staticmethod
-    def __sync_via_correlation(vicon_norm, sensor_norm, check):
+    def __sync_via_correlation(vicon_norm, sensor_norm, check, segment):
         vicon_norm_zero_mean = vicon_norm - np.mean(vicon_norm)
         sensor_norm_zero_mean = sensor_norm - np.mean(sensor_norm)
         correlation = np.correlate(vicon_norm_zero_mean, sensor_norm_zero_mean, 'full')
@@ -35,62 +34,22 @@ class GyrSimulator:
             else:
                 plt.plot(sensor_norm)
                 plt.plot(vicon_norm[-vicon_delay:])
-            plt.show()
+            plt.title('Motion sync check: ' + segment)
         return vicon_delay
 
     @staticmethod
-    def sync_vicon_sensor(trial_name, sensor_loc, vicon_norm, sensor_norm, check=False):
+    def sync_vicon_sensor(trial_name, sensor_loc, vicon_norm, sensor_norm, start_vicon, check=False):
         if 'static' in trial_name:
-            vicon_delay = GyrSimulator._sync_standing(vicon_norm, sensor_norm, check)
-        else:           # others are running trials
-            if 'trunk' in sensor_loc:
-                vicon_delay = GyrSimulator._sync_running_trunk(vicon_norm, sensor_norm, check)
-            else:
-                vicon_delay = GyrSimulator._sync_running_foot(vicon_norm, sensor_norm, check)
+            vicon_delay = GyrSimulator._sync_standing(vicon_norm, sensor_norm, sensor_loc, check)
+        else:
+            vicon_delay = GyrSimulator.__sync_via_correlation(
+                vicon_norm[:start_vicon], sensor_norm[:start_vicon*2], check, sensor_loc)
         return vicon_delay
 
     @staticmethod
-    def _sync_running_foot(vicon_norm, sensor_norm, check=False):
-        vicon_norm = GyrSimulator.get_data_before_running(vicon_norm, 2.5, 1.5)
-        sensor_norm = GyrSimulator.get_data_before_running(sensor_norm, 2.5, 1.5)
-        vicon_delay = GyrSimulator.__sync_via_correlation(vicon_norm, sensor_norm, check)
+    def _sync_standing(vicon_norm, sensor_norm, sensor_loc, check=False):
+        vicon_delay = GyrSimulator.__sync_via_correlation(vicon_norm, sensor_norm, check, sensor_loc)
         return vicon_delay
-
-    @staticmethod
-    def _sync_running_trunk(vicon_norm, sensor_norm, check=False):
-        vicon_norm = GyrSimulator.get_data_before_running(vicon_norm, 1, 0.5)
-        sensor_norm = GyrSimulator.get_data_before_running(sensor_norm, 1, 0.5)
-        vicon_delay = GyrSimulator.__sync_via_correlation(vicon_norm, sensor_norm, check)
-        return vicon_delay
-
-    @staticmethod
-    def _sync_standing(vicon_norm, sensor_norm, check=False):
-        vicon_delay = GyrSimulator.__sync_via_correlation(vicon_norm, sensor_norm, check)
-        return vicon_delay
-
-    @staticmethod
-    def get_data_before_running(gyr_norm, running_thd, standing_thd):
-        test_len_run = 1000
-        # find the running period, starting from the end
-        the_running_sample = None
-        for i_sample in range(len(gyr_norm) - test_len_run, 0, -test_len_run):
-            if np.mean(gyr_norm[i_sample - test_len_run:i_sample]) > running_thd:
-                the_running_sample = i_sample
-                break  # running period found
-        if the_running_sample is None:
-            raise ValueError('The running period not found.')
-
-        # find the period between motion synchronization and running
-        test_len_stand = 100
-        the_standing_sample = None
-        for i_sample in range(the_running_sample, 0, -test_len_stand):
-            if np.mean(gyr_norm[i_sample - test_len_stand:i_sample]) < standing_thd:
-                the_standing_sample = i_sample - test_len_stand
-                break
-
-        if the_standing_sample is None:
-            raise ValueError('The standing period not found.')
-        return gyr_norm[:the_standing_sample]
 
     def initialize_static_marker_df(self, file_name, segment):
         my_vicon_static_reader = ViconReader('{path}{sub_folder}\\{sensor}\\{file_name}.csv'.format(
@@ -114,14 +73,22 @@ class GyrSimulator:
         cali_matrix = vicon_data_average.reshape([-1, 3])
         return cali_matrix
 
-    def get_gyr(self, trial_name, segment_data_df, R_standing_to_ground=None, sampling_rate=MOCAP_SAMPLE_RATE):
-        if 'nike' in trial_name:
-            marker_cali_matrix = self._nike_cali_matrix
-        elif 'mini' in trial_name:
-            marker_cali_matrix = self._mini_cali_matrix
-        else:
-            raise NameError('Wrong trial name.')
-        walking_data = segment_data_df.values
+    def get_gyr(self, segment, vicon_all_df, R_standing_to_ground=None, sampling_rate=MOCAP_SAMPLE_RATE,
+                sync_max_len=60):
+        """
+
+        :param segment:
+        :param vicon_all_df:
+        :param R_standing_to_ground:
+        :param sampling_rate:
+        :param sync_max_len: The maximum length of gyroscope simulation. (60 seconds by default)
+        :return:
+        """
+        # get segment dataframe
+        marker_names = [marker + axis for marker in SEGMENT_MARKERS[segment] for axis in ['_x', '_y', '_z']]
+        segment_data_df = vicon_all_df[marker_names]
+
+        walking_data = segment_data_df.values[:sync_max_len*self._sampling_fre, :]
         data_len = walking_data.shape[0]
         R_IMU_transform = np.zeros([3, 3, data_len])
         marker_number = int(walking_data.shape[1] / 3)
@@ -143,7 +110,7 @@ class GyrSimulator:
             if (R_one_sample[2, 1] - R_one_sample[1, 2]) * vector[0] < 0:  # check the direction of the rotation axis
                 vector = -vector
 
-            [R_from_static_cali, _] = GyrSimulator.rigid_transform_3D(marker_cali_matrix, current_marker_matrix)
+            [R_from_static_cali, _] = GyrSimulator.rigid_transform_3D(self._cali_matrix, current_marker_matrix)
             if R_standing_to_ground is not None:
                 R_IMU_transform[:, :, i_frame] = np.matmul(R_standing_to_ground, R_from_static_cali.T)
             else:
