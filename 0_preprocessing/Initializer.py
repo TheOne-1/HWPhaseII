@@ -81,7 +81,7 @@ class SubjectDataInitializer:
 
             # in vicon data, the first 20 samples can be very noisy
             vicon_delay = GyrSimulator.sync_vicon_sensor(trial_name, segment, gyr_norm_vicon[20:],
-                                                         sensor_gyr_norm[20:], start_vicon, check=True)
+                                                         sensor_gyr_norm[20:], start_vicon, check=False)
             start_haisheng, end_haisheng = start_vicon + vicon_delay, end_vicon + vicon_delay
             sensor_df = haisheng_sensor_reader.data_processed_df.copy().loc[start_haisheng:end_haisheng]
             sensor_df = sensor_df.drop(['sample'], axis=1).reset_index(drop=True)
@@ -127,14 +127,14 @@ class SubjectDataInitializer:
             # 4 second preparation time
             start_vicon, end_vicon = 5 * MOCAP_SAMPLE_RATE, STATIC_STANDING_PERIOD * MOCAP_SAMPLE_RATE
         elif 'static trunk' == trial_name:
-            start_vicon, end_vicon = self.__find_static_trunk_start_end(
-                vicon_reader.get_plate_processed(), self.__readme_xls, trial_name, MOCAP_SAMPLE_RATE)
+            start_vicon, end_vicon = self.__find_recorded_start_end(
+                vicon_reader.get_plate_data_resampled(), self.__readme_xls, trial_name, MOCAP_SAMPLE_RATE)
         elif 'baseline' in trial_name:
             start_vicon, end_vicon = self.__find_baseline_start_end(vicon_reader.marker_data_processed_df['LFCC_y'],
                                                                     walking_thd=200)
         else:  # FPA or trunk
             start_vicon, end_vicon = self.__find_recorded_start_end(
-                vicon_reader.get_plate_processed(), self.__readme_xls, trial_name, MOCAP_SAMPLE_RATE)
+                vicon_reader.get_plate_data_resampled(), self.__readme_xls, trial_name, MOCAP_SAMPLE_RATE)
 
         start_vicon -= MOCAP_SAMPLE_RATE * TRIAL_START_BUFFER
         # add a 3 seconds (600 samples) buffer for real time filtering
@@ -170,11 +170,11 @@ class SubjectDataInitializer:
             # 4 second preparation time
             start_vicon, end_vicon = 5 * MOCAP_SAMPLE_RATE, STATIC_STANDING_PERIOD * MOCAP_SAMPLE_RATE
         elif 'static trunk' == trial_name:
-            start_vicon, end_vicon = self.__find_static_trunk_start_end(
+            start_vicon, end_vicon = self.__find_recorded_start_end(
                 vicon_reader.get_plate_data_resampled(), self.__readme_xls, trial_name, MOCAP_SAMPLE_RATE)
         elif 'baseline' in trial_name:
             start_vicon, end_vicon = self.__find_baseline_start_end(vicon_reader.marker_data_processed_df['LFCC_y'],
-                                                                    walking_thd=100)
+                                                                    walking_thd=200)
         else:  # FPA or trunk
             start_vicon, end_vicon = self.__find_recorded_start_end(
                 vicon_reader.get_plate_data_resampled(), self.__readme_xls, trial_name, MOCAP_SAMPLE_RATE)
@@ -246,33 +246,28 @@ class SubjectDataInitializer:
         plt.show()
 
     @staticmethod
-    def __find_static_trunk_start_end(plate_df, readme_xls, trial_name, sampling_rate, force_thd=200):
-        # find the start time when subject stepped on the first force plate
-        f_2_z = abs(plate_df['f_2_z'].values)
-        start_vicon = np.argmax(f_2_z > force_thd)
-        start_vicon = start_vicon + 2 * sampling_rate
+    def __find_recorded_start_end(plate_df, readme_xls, trial_name, sampling_rate, force_thd=200):
 
         readme_sheet = xlrd.open_workbook(readme_xls).sheet_by_index(0)
         trial_num = TRIAL_NAMES.index(trial_name)
-        pattern_ends = readme_sheet.row_values(trial_num + 2)[6:11]
-        end_vicon = int(start_vicon + max(pattern_ends))
-        return start_vicon, end_vicon
-
-    @staticmethod
-    def __find_recorded_start_end(plate_df, readme_xls, trial_name, sampling_rate, force_thd=200):
-        # find the start time when subject stepped on the first force plate
-        f_2_z = abs(plate_df['f_2_z'].values)
-        start_vicon = np.argmax(f_2_z > force_thd)
-        start_vicon = start_vicon + 2 * sampling_rate
-
-        # find the end by duration
-        if 'FPA' in trial_name:
-            duration = 5 * 60
-        elif 'trunk' in trial_name:
-            duration = 6 * 60
+        pattern_start = readme_sheet.row_values(trial_num + 2)[12]
+        if pattern_start is not '':
+            start_vicon = int(pattern_start)
         else:
-            raise ValueError('Wrong trial name')
-        end_vicon = duration * sampling_rate
+            # find the start time when subject stepped on the first force plate
+            f_2_z = abs(plate_df['f_2_z'].values)
+            start_vicon = np.argmax(f_2_z > force_thd)
+            start_vicon = start_vicon + 2 * sampling_rate
+
+        trial_num = TRIAL_NAMES.index(trial_name)
+        if trial_name == 'static trunk' or 'FPA' in trial_name:
+            pattern_ends = readme_sheet.row_values(trial_num + 2)[6:11]
+        elif 'trunk' in trial_name:
+            pattern_ends = readme_sheet.row_values(trial_num + 2)[6:12]
+        else:
+            raise ValueError('Wrong trial name.')
+
+        end_vicon = int(start_vicon + max(pattern_ends))
         return start_vicon, end_vicon
 
     @staticmethod

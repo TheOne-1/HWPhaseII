@@ -1,34 +1,51 @@
-from const import PROCESSED_DATA_PATH, HAISHENG_SENSOR_SAMPLE_RATE, MOCAP_SAMPLE_RATE, ROTATION_VIA_STATIC_CALIBRATION, \
-    SPECIFIC_CALI_MATRIX, TRIAL_START_BUFFER, FILTER_WIN_LEN
+from const import PROCESSED_DATA_PATH, MOCAP_SAMPLE_RATE, ROTATION_VIA_STATIC_CALIBRATION, \
+    SPECIFIC_CALI_MATRIX, TRIAL_START_BUFFER, FILTER_WIN_LEN, SUB_NAMES, TRIAL_NAMES
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from StrikeOffDetectorIMU import StrikeOffDetectorIMUFilter
+import xlrd
 
 
 class OneTrialData:
-    def __init__(self, subject_name, trial_name, sensor_sampling_fre, static_data_df=None):
+    def __init__(self, subject_name, trial_name, readme_xls, sensor_sampling_fre, side, static_data_df=None):
         self._subject_name = subject_name
+        self._subject_id = SUB_NAMES.index(subject_name)
         self._trial_name = trial_name
+        self._side = side
         self._sensor_sampling_fre = sensor_sampling_fre
         self._static_data_df = static_data_df
         if sensor_sampling_fre == MOCAP_SAMPLE_RATE:
-            self._side = 'l'       # 'l' or 'r'
+            # self._side = 'l'       # 'l' or 'r'
             data_folder = '\\200Hz\\'
         else:
-            self._side = 'r'       # 'l' or 'r'
+            # self._side = 'r'       # 'l' or 'r'
             data_folder = '\\100Hz\\'
         # initialize the dataframe of gait data, including force plate, marker and IMU data
         gait_data_path = PROCESSED_DATA_PATH + '\\' + subject_name + data_folder + trial_name + '.csv'
         self.gait_data_df = pd.read_csv(gait_data_path, index_col=False)
         # initialize the dataframe of gait parameters, including loading rate, strike index, ...
         gait_param_path = PROCESSED_DATA_PATH + '\\' + subject_name + data_folder + 'param_of_' + trial_name + '.csv'
-
         buffer_sample_num = self._sensor_sampling_fre * TRIAL_START_BUFFER
         self.gait_data_df = self.gait_data_df.loc[buffer_sample_num:, :]        # skip the first several hundred data
         if static_data_df is not None:
             self.gait_param_df = pd.read_csv(gait_param_path, index_col=False)
             self.gait_param_df = self.gait_param_df.loc[buffer_sample_num:, :]
+
+        self.__init_subtrial_ends(readme_xls)
+
+    def __init_subtrial_ends(self, readme_xls):
+        readme_sheet = xlrd.open_workbook(readme_xls).sheet_by_index(0)
+        trial_id = TRIAL_NAMES.index(self._trial_name)
+        if 'FPA' in self._trial_name:
+            self.__subtrial_ends = readme_sheet.row_values(trial_id + 2)[6:11]
+        elif 'trunk' in self._trial_name:
+            self.__subtrial_ends = readme_sheet.row_values(trial_id + 2)[6:12]
+        else:
+            self.__subtrial_ends = None
+        if self.__subtrial_ends is not None:
+            self.__subtrial_ends = \
+                [int(element / MOCAP_SAMPLE_RATE * self._sensor_sampling_fre) for element in self.__subtrial_ends]
 
     def get_one_IMU_data(self, IMU_location, acc=True, gyr=False, mag=False):
         column_names = []
@@ -38,7 +55,6 @@ class OneTrialData:
             column_names += [IMU_location + '_gyr_' + axis for axis in ['x', 'y', 'z']]
         if mag:
             column_names += [IMU_location + '_mag_' + axis for axis in ['x', 'y', 'z']]
-
         data = self.gait_data_df[column_names].values
         if ROTATION_VIA_STATIC_CALIBRATION:
             data_rotated = np.zeros(data.shape)
@@ -80,23 +96,34 @@ class OneTrialData:
         dcm_mat = np.array([vector_0, vector_1, vector_2])
         return dcm_mat
 
-    def get_lr_input_output(self, IMU_location, from_IMU, acc=True, gyr=True, mag=False):
+    def get_data_by_sample(self, IMU_location, param_name, acc=True, gyr=True, mag=False):
+        param_data = self.gait_param_df[self._side + '_' + param_name].values
+        IMU_data = self.get_one_IMU_data(IMU_location, acc, gyr, mag)
+
+        subtrial_array = np.zeros([IMU_data.shape[0]])
+        if self.__subtrial_ends is not None:
+            subtrial_ends_sorted = self.__subtrial_ends[:]
+            subtrial_ends_sorted.sort()
+            subtrial_start = 0
+            for subtrial_end in subtrial_ends_sorted:
+                subtrial_id = self.__subtrial_ends.index(subtrial_end)
+                subtrial_array[subtrial_start:subtrial_end+1] = subtrial_id
+                subtrial_start = subtrial_end
+        return IMU_data, param_data, subtrial_array
+
+    def get_data_by_step(self, IMU_location, param_name, acc=True, gyr=True, mag=False):
+
         """
         GRFz: from strike to off
         acc and gyr: from off to off because information before strike might be useful
         """
-        if from_IMU == 2:
-            filter_delay = int(FILTER_WIN_LEN / 2)
-        else:
-            filter_delay = 0
-        if not from_IMU:
-            offs, step_num = self.get_offs()
-            strikes, step_num = self.get_strikes()
-        else:
-            offs, strikes, step_num = self.get_offs_strikes_from_IMU(from_IMU)
-        lr_data = self.gait_param_df[self._side + '_LR'].values
+        filter_delay = int(FILTER_WIN_LEN / 2)
+        offs, step_num = self.get_offs()
+        strikes, step_num = self.get_strikes()
+        offs_imu, strikes_imu, step_num = self.get_offs_strikes_from_IMU()
+        param_data = self.gait_param_df[param_name].values
         IMU_data = self.get_one_IMU_data(IMU_location, acc, gyr, mag)
-        step_lr_data, step_imu_data = [], []
+        step_param_data, step_imu_data = [], []
         for i_step in range(step_num):
             strike_in_between = strikes[offs[i_step] < strikes]
             strike_in_between = strike_in_between[strike_in_between < offs[i_step+1]]
@@ -108,14 +135,14 @@ class OneTrialData:
             strikes_array = np.zeros([step_end - step_start, 1])
             strikes_array[strike_in_between - offs[i_step], 0] = 1
             # skip this step if the step_end exceeds the maximum data length
-            if step_end > lr_data.shape[0]:
+            if step_end > param_data.shape[0]:
                 continue
 
             step_input = np.column_stack([IMU_data[step_start:step_end, :], strikes_array])
             step_imu_data.append(step_input)
-            step_lr_data.append(lr_data[step_start:step_end])
-        step_imu_data, step_lr_data = self.check_step_input_output(step_imu_data, step_lr_data)
-        return step_imu_data, step_lr_data
+            step_param_data.append(lr_data[step_start:step_end])
+        step_imu_data, step_param_data = self.check_step_input_output(step_imu_data, step_param_data)
+        return step_imu_data, step_param_data
 
     def get_strikes(self):
         strike_column = self._side + '_strikes'
@@ -131,23 +158,17 @@ class OneTrialData:
         step_num = len(offs) - 1
         return offs, step_num
 
-    def get_offs_strikes_from_IMU(self, from_IMU):
+    def get_offs_strikes_from_IMU(self):
         """
         There is no side because by default 100Hz is the right side, 200Hz is the left side.
         :return:
         """
-        if from_IMU == 1:
-            off_column = 'offs_IMU'
-            strike_column = 'strikes_IMU'
-        elif from_IMU == 2:
-            off_column = 'offs_IMU_lfilter'
-            strike_column = 'strikes_IMU_lfilter'
-        else:
-            raise ValueError('Invalid from_IMU value. from_IMU: 0 for from plate, 1 for filtfilt, 2 for lfilter')
+        off_column = 'offs_IMU_lfilter'
         offs = self.gait_param_df[off_column]
         offs = np.where(offs == 1)[0]
         step_num = len(offs) - 1
 
+        strike_column = 'strikes_IMU_lfilter'
         strikes = self.gait_param_df[strike_column]
         strikes = np.where(strikes == 1)[0]
         return offs, strikes, step_num

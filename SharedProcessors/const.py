@@ -4,7 +4,7 @@ import copy
 TRIAL_NAMES = ['static', 'static trunk', 'baseline 10', 'FPA 10', 'trunk 10', 'baseline 12', 'FPA 12', 'trunk 12',
                'baseline 14', 'FPA 14', 'trunk 14']
 
-SUB_AND_TRIALS = {'190803LiJiayi': TRIAL_NAMES, '190806SunDongxiao': TRIAL_NAMES}
+SUB_AND_TRIALS = {'190803LiJiayi': TRIAL_NAMES, '190806SunDongxiao': TRIAL_NAMES, '190810LiuSensen': TRIAL_NAMES,}
 
 SUB_NAMES = tuple(SUB_AND_TRIALS.keys())
 
@@ -19,6 +19,8 @@ for key in SUB_AND_WALKING_TRIALS.keys():
         SUB_AND_WALKING_TRIALS[key].remove('static')
     if 'static trunk' in SUB_AND_WALKING_TRIALS[key]:
         SUB_AND_WALKING_TRIALS[key].remove('static trunk')
+
+WALKING_TRIALS = SUB_AND_WALKING_TRIALS[SUB_NAMES[0]]
 
 # in Haisheng sensor's column names, x and y are switched to make it the same as Xsens column
 COLUMN_NAMES_HAISHENG = ['hour', 'minute', 'second', 'millisecond', 'acc_y', 'acc_x', 'acc_z', 'gyr_y', 'gyr_x',
@@ -95,7 +97,5 @@ COLUMN_FOR_HUAWEI = ['marker_frame', 'f_1_x', 'f_1_y', 'f_1_z', 'c_1_x', 'c_1_y'
 
 COLUMN_FOR_HUAWEI_1000 = ['marker_frame', 'f_1_x', 'f_1_y', 'f_1_z', 'c_1_x', 'c_1_y', 'c_1_z']
 
-
-
-
+SPECIFIC_CALI_MATRIX = {}
 
