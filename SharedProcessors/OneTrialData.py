@@ -97,7 +97,11 @@ class OneTrialData:
         return dcm_mat
 
     def get_data_by_sample(self, IMU_location, param_name, acc=True, gyr=True, mag=False):
-        param_data = self.gait_param_df[self._side + '_' + param_name].values
+        if param_name == 'FPA':
+            param_data = self.gait_param_df[self._side + '_' + param_name].values
+        else:
+            param_data = self.gait_param_df[param_name].values
+
         IMU_data = self.get_one_IMU_data(IMU_location, acc, gyr, mag)
 
         subtrial_array = np.zeros([IMU_data.shape[0]])

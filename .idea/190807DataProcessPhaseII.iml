@@ -7,6 +7,7 @@
       <sourceFolder url="file://$MODULE_DIR$/1_param_processing" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/abandoned/3_FPA" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/2_FPA" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/3_trunk" isTestSource="false" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

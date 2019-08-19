@@ -2,19 +2,15 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="ca8af767-086f-4eee-a576-8e51e088d70e" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/2_FPA/2_FPA.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/2_FPA/ProcessorFPA.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/SharedProcessors/DataReader.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/SharedProcessors/DataStruct.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/SharedProcessors/Processor.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/SharedProcessors/ShowParam.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/3_trunk/3_trunk.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/3_trunk/ProcessorTrunk.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/190807DataProcessPhaseII.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/190807DataProcessPhaseII.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/0_preprocessing/0_initialize_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/0_preprocessing/0_initialize_data.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/0_preprocessing/Initializer.py" beforeDir="false" afterPath="$PROJECT_DIR$/0_preprocessing/Initializer.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/1_param_processing/1_initialize_parameter.py" beforeDir="false" afterPath="$PROJECT_DIR$/1_param_processing/1_initialize_parameter.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/2_FPA/2_FPA.py" beforeDir="false" afterPath="$PROJECT_DIR$/2_FPA/2_FPA.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/2_FPA/ProcessorFPA.py" beforeDir="false" afterPath="$PROJECT_DIR$/2_FPA/ProcessorFPA.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SharedProcessors/DataStruct.py" beforeDir="false" afterPath="$PROJECT_DIR$/SharedProcessors/DataStruct.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/SharedProcessors/OneTrialData.py" beforeDir="false" afterPath="$PROJECT_DIR$/SharedProcessors/OneTrialData.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SharedProcessors/const.py" beforeDir="false" afterPath="$PROJECT_DIR$/SharedProcessors/const.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SharedProcessors/Processor.py" beforeDir="false" afterPath="$PROJECT_DIR$/SharedProcessors/Processor.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -25,12 +21,36 @@
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/2_FPA/2_FPA.py">
+        <entry file="file://$PROJECT_DIR$/3_trunk/3_trunk.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="154">
-              <caret line="7" column="25" lean-forward="true" selection-start-line="7" selection-start-column="25" selection-end-line="7" selection-end-column="25" />
+            <state relative-caret-position="264">
+              <caret line="12" column="24" lean-forward="true" selection-start-line="12" selection-start-column="24" selection-end-line="12" selection-end-column="24" />
               <folding>
-                <element signature="e#0#43#0" expanded="true" />
+                <element signature="e#0#32#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/3_trunk/ProcessorTrunk.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="304">
+              <caret line="29" column="83" selection-start-line="29" selection-start-column="83" selection-end-line="29" selection-end-column="83" />
+              <folding>
+                <element signature="e#98#129#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/SharedProcessors/Evaluation.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="395">
+              <caret line="26" selection-start-line="26" selection-end-line="26" />
+              <folding>
+                <element signature="e#0#18#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -39,8 +59,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/SharedProcessors/DataStruct.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="176">
-              <caret line="13" column="51" selection-start-line="13" selection-start-column="43" selection-end-line="13" selection-end-column="51" />
+            <state relative-caret-position="395">
+              <caret line="68" column="56" selection-start-line="68" selection-start-column="56" selection-end-line="68" selection-end-column="56" />
             </state>
           </provider>
         </entry>
@@ -48,32 +68,11 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/SharedProcessors/Processor.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="3784">
-              <caret line="184" column="89" selection-start-line="184" selection-start-column="83" selection-end-line="184" selection-end-column="89" />
+            <state relative-caret-position="329">
+              <caret line="62" selection-start-line="62" selection-end-line="62" />
               <folding>
                 <element signature="e#0#33#0" expanded="true" />
               </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/2_FPA/ProcessorFPA.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="128">
-              <caret line="17" column="51" selection-start-line="17" selection-start-column="51" selection-end-line="17" selection-end-column="51" />
-              <folding>
-                <element signature="e#0#31#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/SharedProcessors/DataReader.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="321">
-              <caret line="18" column="33" selection-start-line="18" selection-start-column="33" selection-end-line="18" selection-end-column="33" />
             </state>
           </provider>
         </entry>
@@ -153,11 +152,13 @@
         <option value="$PROJECT_DIR$/0_preprocessing/0_initialize_data.py" />
         <option value="$PROJECT_DIR$/1_param_processing/StrikeOffDetectorIMU.py" />
         <option value="$PROJECT_DIR$/1_param_processing/1_initialize_parameter.py" />
-        <option value="$PROJECT_DIR$/SharedProcessors/OneTrialData.py" />
-        <option value="$PROJECT_DIR$/SharedProcessors/DataStruct.py" />
-        <option value="$PROJECT_DIR$/2_FPA/2_FPA.py" />
-        <option value="$PROJECT_DIR$/SharedProcessors/Processor.py" />
         <option value="$PROJECT_DIR$/2_FPA/ProcessorFPA.py" />
+        <option value="$PROJECT_DIR$/2_FPA/2_FPA.py" />
+        <option value="$PROJECT_DIR$/SharedProcessors/OneTrialData.py" />
+        <option value="$PROJECT_DIR$/SharedProcessors/Processor.py" />
+        <option value="$PROJECT_DIR$/3_trunk/3_trunk.py" />
+        <option value="$PROJECT_DIR$/SharedProcessors/DataStruct.py" />
+        <option value="$PROJECT_DIR$/3_trunk/ProcessorTrunk.py" />
       </list>
     </option>
   </component>
@@ -182,21 +183,6 @@
             <path>
               <item name="190807DataProcessPhaseII" type="b2602c69:ProjectViewProjectNode" />
               <item name="190807DataProcessPhaseII" type="462c0819:PsiDirectoryNode" />
-              <item name="0_preprocessing" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="190807DataProcessPhaseII" type="b2602c69:ProjectViewProjectNode" />
-              <item name="190807DataProcessPhaseII" type="462c0819:PsiDirectoryNode" />
-              <item name="1_param_processing" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="190807DataProcessPhaseII" type="b2602c69:ProjectViewProjectNode" />
-              <item name="190807DataProcessPhaseII" type="462c0819:PsiDirectoryNode" />
-              <item name="2_FPA" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="190807DataProcessPhaseII" type="b2602c69:ProjectViewProjectNode" />
-              <item name="190807DataProcessPhaseII" type="462c0819:PsiDirectoryNode" />
               <item name="SharedProcessors" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
@@ -207,19 +193,20 @@
     </panes>
   </component>
   <component name="PropertiesComponent">
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/../../../ML Project/simulatedIMU/python/0830SimulateIMUFigures" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/../190406DataProcess" />
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
   <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="D:\Tian\Research\Projects\HuaweiProject\codes\190807DataProcessPhaseII\3_trunk" />
+      <recent name="D:\Tian\Research\Projects\HuaweiProject\codes\190807DataProcessPhaseII\SharedProcessors" />
+      <recent name="D:\Tian\Research\Projects\HuaweiProject\codes\190807DataProcessPhaseII\2_FPA" />
+      <recent name="D:\Tian\Research\Projects\HuaweiProject\codes\190807DataProcessPhaseII" />
+    </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="D:\Tian\Research\Projects\HuaweiProject\codes\190807DataProcessPhaseII\SharedProcessors" />
       <recent name="D:\Tian\Research\Projects\HuaweiProject\codes\190807DataProcessPhaseII\abandoned" />
       <recent name="D:\Tian\Research\Projects\HuaweiProject\codes\190807DataProcessPhaseII\3_FPA" />
-    </key>
-    <key name="CopyFile.RECENT_KEYS">
-      <recent name="D:\Tian\Research\Projects\HuaweiProject\codes\190807DataProcessPhaseII\SharedProcessors" />
-      <recent name="D:\Tian\Research\Projects\HuaweiProject\codes\190807DataProcessPhaseII\2_FPA" />
-      <recent name="D:\Tian\Research\Projects\HuaweiProject\codes\190807DataProcessPhaseII" />
     </key>
   </component>
   <component name="RunDashboard">
@@ -234,7 +221,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Python.2_FPA">
+  <component name="RunManager" selected="Python.3_trunk">
     <configuration name="0_initialize_data" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="190807DataProcessPhaseII" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -298,13 +285,36 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+    <configuration name="3_trunk" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <module name="190807DataProcessPhaseII" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/3_trunk" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/3_trunk/3_trunk.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <list>
       <item itemvalue="Python.0_initialize_data" />
       <item itemvalue="Python.1_initialize_parameter" />
       <item itemvalue="Python.2_FPA" />
+      <item itemvalue="Python.3_trunk" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.3_trunk" />
         <item itemvalue="Python.2_FPA" />
         <item itemvalue="Python.0_initialize_data" />
         <item itemvalue="Python.1_initialize_parameter" />
@@ -342,14 +352,14 @@
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" weight="0.3286334" />
-      <window_info active="true" anchor="bottom" id="Run" order="2" visible="true" weight="0.329718" />
-      <window_info anchor="bottom" id="Debug" order="3" weight="0.3991323" />
+      <window_info active="true" anchor="bottom" id="Run" order="2" sideWeight="0.49947312" visible="true" weight="0.329718" />
+      <window_info anchor="bottom" id="Debug" order="3" sideWeight="0.49947312" weight="0.3991323" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
       <window_info anchor="bottom" id="TODO" order="6" weight="0.329718" />
       <window_info anchor="bottom" id="Version Control" order="7" />
       <window_info anchor="bottom" id="Terminal" order="8" weight="0.329718" />
-      <window_info anchor="bottom" id="Event Log" order="9" side_tool="true" />
+      <window_info anchor="bottom" id="Event Log" order="9" sideWeight="0.50052685" side_tool="true" weight="0.329718" />
       <window_info anchor="bottom" id="Python Console" order="10" weight="0.329718" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
@@ -422,15 +432,6 @@
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/abandoned/3_FPA/ProcessorLRRealTimeCNN.py" />
-    <entry file="file://$PROJECT_DIR$/SharedProcessors/Evaluation.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state>
-          <folding>
-            <element signature="e#0#18#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/SharedProcessors/ShowParam.py">
       <provider selected="true" editor-type-id="text-editor" />
     </entry>
@@ -504,16 +505,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/1_param_processing/ParameterProcessor.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-1418">
-          <caret line="14" column="42" selection-start-line="14" selection-start-column="42" selection-end-line="14" selection-end-column="42" />
-          <folding>
-            <element signature="e#0#19#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/0_preprocessing/0_initialize_data.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="66">
@@ -558,30 +549,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/SharedProcessors/const.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="110">
-          <caret line="6" column="113" selection-start-line="6" selection-start-column="82" selection-end-line="6" selection-end-column="113" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://E:/ProgramFiles/Python368/Lib/codecs.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="176">
-          <caret line="308" selection-start-line="308" selection-end-line="308" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/SharedProcessors/OneTrialData.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-550">
-          <caret line="111" selection-start-line="111" selection-end-line="111" />
-          <folding>
-            <element signature="e#0#177#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/SharedProcessors/DataReader.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="321">
@@ -589,19 +556,12 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/SharedProcessors/DataStruct.py">
+    <entry file="file://$PROJECT_DIR$/1_param_processing/ParameterProcessor.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="176">
-          <caret line="13" column="51" selection-start-line="13" selection-start-column="43" selection-end-line="13" selection-end-column="51" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/SharedProcessors/Processor.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="3784">
-          <caret line="184" column="89" selection-start-line="184" selection-start-column="83" selection-end-line="184" selection-end-column="89" />
+        <state relative-caret-position="22">
+          <caret line="14" column="42" selection-start-line="14" selection-start-column="42" selection-end-line="14" selection-end-column="42" />
           <folding>
-            <element signature="e#0#33#0" expanded="true" />
+            <element signature="e#0#19#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -609,19 +569,87 @@
     <entry file="file://$PROJECT_DIR$/2_FPA/2_FPA.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="154">
-          <caret line="7" column="25" lean-forward="true" selection-start-line="7" selection-start-column="25" selection-end-line="7" selection-end-column="25" />
-          <folding>
-            <element signature="e#0#43#0" expanded="true" />
-          </folding>
+          <caret line="8" column="59" selection-start-line="8" selection-start-column="59" selection-end-line="8" selection-end-column="59" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/2_FPA/ProcessorFPA.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="128">
-          <caret line="17" column="51" selection-start-line="17" selection-start-column="51" selection-end-line="17" selection-end-column="51" />
+        <state relative-caret-position="132">
+          <caret line="6" column="8" lean-forward="true" selection-start-line="6" selection-start-column="8" selection-end-line="6" selection-end-column="8" />
           <folding>
             <element signature="e#0#31#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SharedProcessors/OneTrialData.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="285">
+          <caret line="103" selection-start-line="103" selection-end-line="103" />
+          <folding>
+            <element signature="e#0#177#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SharedProcessors/const.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-69">
+          <caret line="6" column="113" selection-start-line="6" selection-start-column="82" selection-end-line="6" selection-end-column="113" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SharedProcessors/DataStruct.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="395">
+          <caret line="68" column="56" selection-start-line="68" selection-start-column="56" selection-end-line="68" selection-end-column="56" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SharedProcessors/Evaluation.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="395">
+          <caret line="26" selection-start-line="26" selection-end-line="26" />
+          <folding>
+            <element signature="e#0#18#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SharedProcessors/Processor.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="329">
+          <caret line="62" selection-start-line="62" selection-end-line="62" />
+          <folding>
+            <element signature="e#0#33#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://E:/ProgramFiles/Python368/Lib/codecs.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="220">
+          <caret line="310" selection-start-line="310" selection-end-line="310" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/3_trunk/3_trunk.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="264">
+          <caret line="12" column="24" lean-forward="true" selection-start-line="12" selection-start-column="24" selection-end-line="12" selection-end-column="24" />
+          <folding>
+            <element signature="e#0#32#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/3_trunk/ProcessorTrunk.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="304">
+          <caret line="29" column="83" selection-start-line="29" selection-start-column="83" selection-end-line="29" selection-end-column="83" />
+          <folding>
+            <element signature="e#98#129#0" expanded="true" />
           </folding>
         </state>
       </provider>

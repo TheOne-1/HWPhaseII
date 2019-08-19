@@ -57,14 +57,16 @@ class DataStructSample:
         :return: input_array, output_array, _
         """
         data_df = self.__data_df
+        if data_df.shape[0] == 0:
+            return None, None, None     # return None if the data_df is empty
         if subject_ids is not None:
-            data_df = data_df['subject_id' in subject_ids]
+            data_df = data_df[data_df['trial_id'].isin(subject_ids)]
         if trial_ids is not None:
-            data_df = data_df['trial_id' in trial_ids]
+            data_df = data_df[data_df['trial_id'].isin(trial_ids)]
         if subtrial_ids is not None:
-            data_df = data_df['subtrial_id' in subtrial_ids]
-        input_array = data_df[self.__col_input]
-        output_array = data_df[self.__col_output]
+            data_df = data_df[data_df['trial_id'].isin(subtrial_ids)]
+        input_array = data_df[self.__col_input].values
+        output_array = data_df[self.__col_output].values
         return input_array, output_array, data_df
 
 

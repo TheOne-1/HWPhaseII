@@ -42,14 +42,20 @@ class Processor:
         else:
             raise ValueError('Wrong data_type value. It has to be 0 or 1.')
 
-    # def draw_subtrial_output_error_bar(self):
-    #     # this method has to be overwritten
-    #     raise NotImplementedError('this convert_step_input method has to be overwritten')
+    def prepare_train_test(self, subject_ids=None, trial_ids=None, subtrial_ids=None):
+        """
 
-    def prepare_train_test(self):
-        inputs, outputs, _ = self.train_data.get_all_data()
+        :param subject_ids: list
+            The ids of the target subjects.
+        :param trial_ids: list
+            The ids of the target trials.
+        :param subtrial_ids: list
+            The ids of the target subtrials.
+        :return: input_array, output_array, _
+        """
+        inputs, outputs, _ = self.train_data.get_all_data(subject_ids, trial_ids, subtrial_ids)
         self._x_train, self._y_train = self.convert_input_output(inputs, outputs, self.sensor_sampling_fre)
-        inputs, outputs, _ = self.test_data.get_all_data()
+        inputs, outputs, _ = self.test_data.get_all_data(subject_ids, trial_ids, subtrial_ids)
         self._x_test, self._y_test = self.convert_input_output(inputs, outputs, self.sensor_sampling_fre)
         # do input normalization
         if self.do_input_norm:
@@ -104,6 +110,27 @@ class Processor:
         output = output.reshape(-1, 1)
         output = self.output_minmax_scalar.inverse_transform(output)
         return output.reshape(-1,)
+
+    def draw_subtrial_output_error_bar(self, trial_id, param_name=''):
+        _, _, data_df = self.train_data.get_all_data()
+        subtrial_id_array = data_df['subtrial_id']
+        subtrial_ids = list(set(subtrial_id_array))
+
+        mean_list, std_list = [], []
+        trial_df = data_df[data_df['trial_id'] == trial_id]
+        for subtrial_id in subtrial_ids:
+            subtrial_df = trial_df[trial_df['subtrial_id'] == subtrial_id]
+            subtrial_outputs = subtrial_df['output_0']
+            mean_list.append(np.mean(subtrial_outputs))
+            std_list.append(np.std(subtrial_outputs))
+
+        x_bar = [i_bar for i_bar in range(len(subtrial_ids))]
+        plt.figure()
+        plt.bar(x_bar, mean_list)
+        plt.errorbar(x_bar, mean_list, yerr=std_list, fmt='none')
+        plt.xlabel('subtrial id')
+        plt.ylabel(param_name + 'angle')
+        plt.show()
 
     # def find_feature(self):
     #     train_all_data = DataReader(self.train_sub_and_trials, self.param_name, self.sensor_sampling_fre,
