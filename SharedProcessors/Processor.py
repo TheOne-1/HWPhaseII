@@ -46,10 +46,10 @@ class Processor:
             The ids of the target subtrials.
         :return: input_array, output_array, _
         """
-        inputs, outputs, _ = self.train_data.get_all_data(subject_ids, trial_ids, subtrial_ids)
-        self._x_train, self._y_train = self.convert_input_output(inputs, outputs, self.sensor_sampling_fre)
-        inputs, outputs, _ = self.test_data.get_all_data(subject_ids, trial_ids, subtrial_ids)
-        self._x_test, self._y_test = self.convert_input_output(inputs, outputs, self.sensor_sampling_fre)
+        inputs, outputs, train_id_df = self.train_data.get_all_data(subject_ids, trial_ids, subtrial_ids)
+        self._x_train, self._y_train = self.convert_input_output(inputs, outputs, train_id_df, self.sensor_sampling_fre)
+        inputs, outputs, test_id_df = self.test_data.get_all_data(subject_ids, trial_ids, subtrial_ids)
+        self._x_test, self._y_test = self.convert_input_output(inputs, outputs, test_id_df, self.sensor_sampling_fre)
         # do input normalization
         if self.do_input_norm:
             self.norm_input()
@@ -57,7 +57,7 @@ class Processor:
             self.norm_output()
 
     # convert the input from list to ndarray
-    def convert_input_output(self, inputs, outputs, sampling_fre):
+    def convert_input_output(self, inputs, outputs, id_df, sampling_fre):
         # this method has to be overwritten
         raise NotImplementedError('this convert_step_input method has to be overwritten')
 
@@ -105,12 +105,12 @@ class Processor:
         return output.reshape(-1,)
 
     def draw_subtrial_output_error_bar(self, trial_id, param_name=''):
-        _, _, data_df = self.train_data.get_all_data()
-        subtrial_id_array = data_df['subtrial_id']
+        _, _, id_df = self.train_data.get_all_data()
+        subtrial_id_array = id_df['subtrial_id']
         subtrial_ids = list(set(subtrial_id_array))
 
         mean_list, std_list = [], []
-        trial_df = data_df[data_df['trial_id'] == trial_id]
+        trial_df = id_df[id_df['trial_id'] == trial_id]
         for subtrial_id in subtrial_ids:
             subtrial_df = trial_df[trial_df['subtrial_id'] == subtrial_id]
             subtrial_outputs = subtrial_df['output_0']

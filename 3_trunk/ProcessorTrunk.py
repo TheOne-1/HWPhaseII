@@ -10,9 +10,11 @@ from Evaluation import Evaluation
 
 
 class ProcessorTrunk(Processor):
-    def convert_input_output(self, inputs, outputs, sampling_fre):
+    def convert_input_output(self, inputs, outputs, id_df, sampling_fre):
         if inputs is None:
             return None, None
+
+        # see the id_df
 
         # convert data into features
         feature_0 = - np.arctan2(inputs[:, 2], np.linalg.norm(inputs[:, 0:3], axis=1)) / np.pi * 180
