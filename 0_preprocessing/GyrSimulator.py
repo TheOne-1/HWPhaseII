@@ -35,6 +35,7 @@ class GyrSimulator:
                 plt.plot(sensor_norm)
                 plt.plot(vicon_norm[-vicon_delay:])
             plt.title('Motion sync check: ' + segment)
+            plt.show()
         return vicon_delay
 
     @staticmethod

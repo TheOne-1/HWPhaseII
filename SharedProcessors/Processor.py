@@ -1,14 +1,7 @@
-from Evaluation import Evaluation
-from sklearn.linear_model import LinearRegression
-from sklearn.neural_network import MLPRegressor
 import matplotlib.pyplot as plt
 from DataReader import DataReader
 from keras.layers import *
 import scipy.interpolate as interpo
-from sklearn.ensemble import GradientBoostingRegressor
-from const import SUB_NAMES, TRIAL_NAMES, COLORS, DATA_COLUMNS_XSENS, DATA_COLUMNS_IMU
-import scipy.stats as stats
-from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 
 

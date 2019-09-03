@@ -62,17 +62,8 @@ class XsensReader(IMUSensorReader):
     def _get_raw_data(self, device, callback, control):
         # Get total number of samples
         packetCount = device.getDataPacketCount()
-        # rotation correction
-        do_rotation = False
-        if 'nike' in self._trial_name:
-            if self._subject_folder in XSENS_ROTATION_CORRECTION_NIKE.keys():
-                sub_rota_dict = XSENS_ROTATION_CORRECTION_NIKE[self._subject_folder]
-                if self._sensor_loc in sub_rota_dict.keys():
-                    do_rotation = True
-                    rotation_mat = sub_rota_dict[self._sensor_loc]
-
         # Export the data
-        data_mat = np.zeros([packetCount, 9])
+        data_mat = np.zeros([packetCount, 12])
         for index in range(packetCount):
             # Retrieve a packet
             packet = device.getDataPacketByIndex(index)
@@ -86,14 +77,9 @@ class XsensReader(IMUSensorReader):
                 data_mat[index, 6:9] = data_mat[index - 1, 6:9]
             else:
                 data_mat[index, 0:9] = np.concatenate([acc, gyr, mag])
-            # correct the placement error
-            if do_rotation:
-                for i_channel in range(3):
-                    data_mat[index, 3*i_channel:3*(i_channel+1)] = np.matmul(
-                        rotation_mat, data_mat[index, 3*i_channel:3*(i_channel+1)])
 
-            # quaternion = packet.orientationQuaternion()
-            # data_mat[index, 9:13] = quaternion
+            angles = packet.orientationEuler()
+            data_mat[index, 9:12] = [angles.x(), angles.y(), angles.z()]
         data_raw_df = pd.DataFrame(data_mat)
         data_raw_df.columns = DATA_COLUMNS_XSENS
         device.removeCallbackHandler(callback)
@@ -101,8 +87,8 @@ class XsensReader(IMUSensorReader):
         return data_raw_df
 
     def _get_sensor_data_processed(self):
-        data_raw = self.data_raw_df[DATA_COLUMNS_IMU]
-        data_processed_df = pd.DataFrame(data_raw, columns=DATA_COLUMNS_IMU)
+        data_raw = self.data_raw_df[DATA_COLUMNS_XSENS]
+        data_processed_df = pd.DataFrame(data_raw, columns=DATA_COLUMNS_XSENS)
         return data_processed_df
 
 

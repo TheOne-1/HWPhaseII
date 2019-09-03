@@ -3,7 +3,20 @@ import numpy as np
 import pandas as pd
 
 
-class DataStructSample:
+class DataStruct:
+    def __len__(self):
+        return self.__sample_num
+
+    def append(self, input_array, output_array, subject_id, trial_id, subtrial_array):
+        # this method has to be overwritten
+        raise NotImplementedError('this convert_step_input method has to be overwritten')
+
+    def get_all_data(self, subject_ids=None, trial_ids=None, subtrial_ids=None):
+        # this method has to be overwritten
+        raise NotImplementedError('this convert_step_input method has to be overwritten')
+
+
+class DataStructSample(DataStruct):
     def __init__(self, input_dim=6, output_dim=1):
         self.__input_dim = input_dim
         self.__output_dim = output_dim
@@ -19,9 +32,6 @@ class DataStructSample:
         self.__data_df = pd.DataFrame(columns=self.__col_all)
         # self.__mask_array = np.zeros([0, 1])    # used to mask bad samples, which is more efficient then delete
         # self.__input_array, self.__output_array = np.zeros([0, input_dim]), np.zeros(0, output_dim)
-
-    def __len__(self):
-        return self.__sample_num
 
     def append(self, input_array, output_array, subject_id, trial_id, subtrial_array):
         if len(list({input_array.shape[0], output_array.shape[0], subtrial_array.shape[0]})) != 1:
@@ -70,7 +80,7 @@ class DataStructSample:
         return input_array, output_array, data_df
 
 
-class DataStructStep:
+class DataStructStep(DataStruct):
     """
     This is a simple data structure for pop or insert input, output, status all together
     """
@@ -113,20 +123,20 @@ class DataStructStep:
     def get_trial_id_list(self):
         return self.__trial_id_list
 
-    # def get_data_step(self, subject_ids=None, trial_ids=None, subtrial_ids=None, strike_off_from_IMU=True):
-    #     """
-    #     Return a list of input and a list of output. The length of corresponding input and output might be
-    #      different due to different strike-off detection method. Steps are from toe-off to toe-off.
-    #     :param subject_ids: list
-    #         The id of the target subjects.
-    #     :param trial_ids: list
-    #         The id of the target trials.
-    #     :param subtrial_ids: list
-    #         The id of the target subtrials.
-    #     :param strike_off_from_IMU:
-    #     :return:
-    #     """
-    #     input_list, output_list = [], []
-    #     input_array, output_array, data_df = self.prepare_data_by_sample(subject_ids, trial_ids, subtrial_ids)
+    def get_all_data(self, subject_ids=None, trial_ids=None, subtrial_ids=None, strike_off_from_IMU=True):
+        """
+        Return a list of input and a list of output. The length of corresponding input and output might be
+         different due to different strike-off detection method. Steps are from toe-off to toe-off.
+        :param subject_ids: list
+            The id of the target subjects.
+        :param trial_ids: list
+            The id of the target trials.
+        :param subtrial_ids: list
+            The id of the target subtrials.
+        :param strike_off_from_IMU:
+        :return:
+        """
+        input_list, output_list = [], []
+        input_array, output_array, data_df = self.prepare_data_by_sample(subject_ids, trial_ids, subtrial_ids)
 
 

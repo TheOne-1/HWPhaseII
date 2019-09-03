@@ -4,7 +4,13 @@ import copy
 TRIAL_NAMES = ['static', 'static trunk', 'baseline 10', 'FPA 10', 'trunk 10', 'baseline 12', 'FPA 12', 'trunk 12',
                'baseline 14', 'FPA 14', 'trunk 14']
 
-SUB_AND_TRIALS = {'190803LiJiayi': TRIAL_NAMES, '190806SunDongxiao': TRIAL_NAMES, '190810LiuSensen': TRIAL_NAMES,}
+SUB_AND_TRIALS = {'190803LiJiayi': TRIAL_NAMES, '190806SunDongxiao': TRIAL_NAMES, '190806WangDianxin': TRIAL_NAMES,
+                  '190810LiuSensen': TRIAL_NAMES, '190815QiuYue': TRIAL_NAMES, '190815WangHan': TRIAL_NAMES,
+                  '190816YangCan': TRIAL_NAMES, '190820FuZhenzhen': TRIAL_NAMES, '190820FuZhinan': TRIAL_NAMES,
+                  '190822HeMing': TRIAL_NAMES, '190826MouRongzi': TRIAL_NAMES, '190828LiangJie': TRIAL_NAMES,
+                  '190829JiBin': TRIAL_NAMES, '190829ZhaoJiamin': TRIAL_NAMES, '190831XieJie': TRIAL_NAMES,
+                  '190824ZhangYaqian': TRIAL_NAMES, '190831GongChangyang': TRIAL_NAMES, '190813ZengJia': TRIAL_NAMES,
+                  '190813Caolinfeng': TRIAL_NAMES}
 
 SUB_NAMES = tuple(SUB_AND_TRIALS.keys())
 
@@ -36,7 +42,8 @@ SEGMENT_MARKERS = {'trunk': ['RAC', 'LAC', 'C7'], 'pelvis': ['RIAS', 'LIAS', 'LI
 FORCE_NAMES = ['marker_frame', 'f_1_x', 'f_1_y', 'f_1_z', 'c_1_x', 'c_1_y', 'c_1_z',
                'f_2_x', 'f_2_y', 'f_2_z', 'c_2_x', 'c_2_y', 'c_2_z']
 
-DATA_COLUMNS_XSENS = ['acc_x', 'acc_y', 'acc_z', 'gyr_x', 'gyr_y', 'gyr_z', 'mag_x', 'mag_y', 'mag_z']
+DATA_COLUMNS_XSENS = ['acc_x', 'acc_y', 'acc_z', 'gyr_x', 'gyr_y', 'gyr_z', 'mag_x', 'mag_y', 'mag_z',
+                      'roll', 'pitch', 'yaw']
 
 DATA_COLUMNS_IMU = ['acc_x', 'acc_y', 'acc_z', 'gyr_x', 'gyr_y', 'gyr_z', 'mag_x', 'mag_y', 'mag_z']
 

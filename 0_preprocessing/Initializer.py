@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from const import RAW_DATA_PATH, TRIAL_NAMES, HAISHENG_SENSOR_SAMPLE_RATE, MOCAP_SAMPLE_RATE, \
     XSENS_SENSOR_LOACTIONS, XSENS_FILE_NAME_DIC, STATIC_STANDING_PERIOD, DATA_COLUMNS_IMU, SEGMENT_MARKERS, \
-    TRIAL_START_BUFFER
+    TRIAL_START_BUFFER, DATA_COLUMNS_XSENS
 from numpy.linalg import norm
 import matplotlib.pyplot as plt
 import xlrd
@@ -15,7 +15,7 @@ import os
 
 class SubjectDataInitializer:
     def __init__(self, processed_data_path, subject_folder, trials, readme_xls, check_sync=False,
-                 check_running_period=False, initialize_100Hz=False, initialize_200Hz=False, initialize_1000Hz=False):
+                 check_walking_period=False, initialize_100Hz=False, initialize_200Hz=False, initialize_1000Hz=False):
         print('Subject: ' + subject_folder)
         self.__processed_data_path = processed_data_path
         self._subject_folder = subject_folder
@@ -30,7 +30,7 @@ class SubjectDataInitializer:
             for trial_name in trials:
                 print('Initializing {trial_name} trial, vicon and Haisheng, 100 Hz...'.format(trial_name=trial_name))
                 vicon_all_df, vicon_all_sync_df, start_vicon, end_vicon = \
-                    self.initialize_vicon_resampled(trial_name, HAISHENG_SENSOR_SAMPLE_RATE, check_running_period)
+                    self.initialize_vicon_resampled(trial_name, HAISHENG_SENSOR_SAMPLE_RATE, check_walking_period)
                 haisheng_df = self.initialize_haisheng_sensor(trial_name, vicon_all_sync_df, start_vicon, end_vicon)
                 data_all_df = pd.concat([vicon_all_df, haisheng_df], axis=1)
                 SubjectDataInitializer.__save_data(fre_100_path, trial_name, data_all_df)
@@ -45,7 +45,7 @@ class SubjectDataInitializer:
             for trial_name in trials:
                 print('Initializing {trial_name} trial, vicon and xsens, 200 Hz...'.format(trial_name=trial_name))
                 vicon_all_df, vicon_all_sync_df, start_vicon, end_vicon = \
-                    self.initialize_vicon(trial_name, check_running_period=check_running_period)
+                    self.initialize_vicon(trial_name, check_walking_period=check_walking_period)
                 xsens_all_df = self.initialize_xsens(trial_name, vicon_all_sync_df, start_vicon, end_vicon)
                 data_all_df = pd.concat([vicon_all_df, xsens_all_df], axis=1)
                 SubjectDataInitializer.__save_data(fre_200_path, trial_name, data_all_df)
@@ -103,12 +103,12 @@ class SubjectDataInitializer:
         gyr_norm_vicon = norm(gyr_vicon, axis=1)
         # in vicon data, the first 20 samples can be very noisy
         vicon_delay = GyrSimulator.sync_vicon_sensor(trial_name, 'l_foot', gyr_norm_vicon[20:], sensor_gyr_norm[20:],
-                                                     start_vicon, check)
+                                                     start_vicon, check=False)
         start_xsens, end_xsens = start_vicon + vicon_delay, end_vicon + vicon_delay
 
         xsens_all_df = pd.DataFrame()
         for xsens_location in XSENS_SENSOR_LOACTIONS:
-            current_xsens_col_names = [xsens_location + '_' + channel for channel in DATA_COLUMNS_IMU]
+            current_xsens_col_names = [xsens_location + '_' + channel for channel in DATA_COLUMNS_XSENS]
             xsens_reader = XsensReader(file_path_xsens + XSENS_FILE_NAME_DIC[xsens_location], self._subject_folder,
                                        xsens_location, trial_name)
             current_xsens_all_df = xsens_reader.data_processed_df
@@ -117,7 +117,7 @@ class SubjectDataInitializer:
             xsens_all_df = pd.concat([xsens_all_df, current_xsens_df], axis=1)
         return xsens_all_df
 
-    def initialize_vicon(self, trial_name, check_running_period=False):
+    def initialize_vicon(self, trial_name, check_walking_period=False):
         file_path_vicon = '{path}{sub_folder}\\{sensor}\\{file_name}.csv'.format(
             path=RAW_DATA_PATH, sub_folder=self._subject_folder, sensor='vicon', file_name=trial_name)
         vicon_reader = ViconReader(file_path_vicon)
@@ -136,8 +136,6 @@ class SubjectDataInitializer:
             start_vicon, end_vicon = self.__find_recorded_start_end(
                 vicon_reader.get_plate_data_resampled(), self.__readme_xls, trial_name, MOCAP_SAMPLE_RATE)
 
-        start_vicon -= MOCAP_SAMPLE_RATE * TRIAL_START_BUFFER
-        # add a 3 seconds (600 samples) buffer for real time filtering
         # sometimes the subject start walking on the wrong side of the treadmill so overwrite start_vicon was necessary
         # sometimes the xsens lost connection so overwrite end_vicon was necessary
         # overwrite the start_vicon, end_vicon if they are contained in the readme xls
@@ -150,7 +148,10 @@ class SubjectDataInitializer:
         if pattern_end is not '':
             end_vicon = int(pattern_end)
 
-        if check_running_period:
+        # add a 3 seconds (600 samples) buffer for real time filtering
+        start_vicon -= MOCAP_SAMPLE_RATE * TRIAL_START_BUFFER
+
+        if check_walking_period:
             f_1_z_data = vicon_reader.get_plate_data_resampled(MOCAP_SAMPLE_RATE)['f_1_z']
             plt.figure()
             plt.plot(f_1_z_data)
@@ -194,11 +195,11 @@ class SubjectDataInitializer:
             end_vicon = int(pattern_end)
 
         if check_running_period:
-            f_1_z_data = vicon_reader.get_plate_data_resampled()['f_1_z']
+            f_2_z_data = vicon_reader.get_plate_data_resampled()['f_2_z']
             plt.figure()
-            plt.plot(f_1_z_data)
-            plt.plot([start_vicon, start_vicon], [np.min(f_1_z_data), np.max(f_1_z_data)], 'g--')
-            plt.plot([end_vicon, end_vicon], [np.min(f_1_z_data), np.max(f_1_z_data)], 'r--')
+            plt.plot(f_2_z_data)
+            plt.plot([start_vicon, start_vicon], [np.min(f_2_z_data), np.max(f_2_z_data)], 'g--')
+            plt.plot([end_vicon, end_vicon], [np.min(f_2_z_data), np.max(f_2_z_data)], 'r--')
             plt.title(trial_name)
 
         start_vicon = int(start_vicon / (MOCAP_SAMPLE_RATE / sampling_rate))
@@ -221,14 +222,22 @@ class SubjectDataInitializer:
         :param check_len:
         :return:
         """
-        segment_marker_names = SEGMENT_MARKERS[segment]
-        segment_marker_names_xyz = [name + axis for name in segment_marker_names for axis in ['_x', '_y', '_z']]
-        marker_df_clip = marker_df[segment_marker_names_xyz].copy().reset_index(drop=True).iloc[-check_len:]
         if segment not in ['r_foot', 'trunk', 'l_foot']:
             raise ValueError('Wrong sensor location')
-
         gyr_column_names = [segment + '_gyr_' + axis for axis in ['x', 'y', 'z']]
-        sensor_df = sensor_df[gyr_column_names].iloc[-check_len:]
+        # if np.isnan(sensor_df[gyr_column_names].iloc[-1, 0]):
+        #     clip_start, clip_end = -check_len, -1
+        # else:
+        #     clip_start, clip_end = -check_len, -1
+        sensor_df = sensor_df[gyr_column_names].iloc[:check_len]
+        # if np.isnan(sensor_df.iloc[0, 0]):
+        #     clip_start, clip_end = -check_len, -1
+        #     sensor_df = sensor_df[gyr_column_names].iloc[clip_start:clip_end]
+
+
+        segment_marker_names = SEGMENT_MARKERS[segment]
+        segment_marker_names_xyz = [name + axis for name in segment_marker_names for axis in ['_x', '_y', '_z']]
+        marker_df_clip = marker_df[segment_marker_names_xyz].copy().reset_index(drop=True).iloc[:check_len]
         # get gyr norm from simulation
         gyr_simulator = GyrSimulator(self._subject_folder, segment, sampling_rate)
         gyr_vicon = gyr_simulator.get_gyr(segment, marker_df_clip, sampling_rate=sampling_rate)

@@ -215,11 +215,11 @@ class StrikeOffDetectorIMUFilter(StrikeOffDetectorIMU):
             raise IndexError('Gyr peak not found')
 
         # find strikes and offs (with filter delays)
-        check_win_len = int(1.7 * self._sampling_fre)           # find strike off within this range
+        check_win_len = int(1.4 * self._sampling_fre)           # find strike off within this range
         for i_sample in range(trial_start_buffer_sample_num + 1, data_len):
             if i_sample - last_off > check_win_len:
                 try:
-                    acc_peak = self.find_peak_max(acc_z_filtered[last_off:i_sample-int(check_win_len/3)],
+                    acc_peak = self.find_peak_max(acc_z_filtered[last_off:i_sample-int(check_win_len/5)],
                                                   width=strike_acc_width,
                                                   prominence=strike_acc_prominence, height=strike_acc_height)
                     gyr_peak = self.find_peak_max(gyr_x_filtered[last_off:i_sample],
@@ -228,12 +228,13 @@ class StrikeOffDetectorIMUFilter(StrikeOffDetectorIMU):
                     off_list.append(gyr_peak + last_off + off_delay)
                     last_off = off_list[-1]
                 except ValueError as e:
-                    plt.figure()
-                    plt.plot(acc_z_filtered[last_off:i_sample-int(check_win_len/3)])
-                    plt.plot(gyr_x_filtered[last_off:i_sample])
-                    plt.grid()
-                    plt.show()
-                    last_off = last_off + int(self._sampling_fre * 1.2)     # skip this step
+                    if not np.isnan(gyr_x_filtered[i_sample]):
+                        plt.figure()
+                        plt.plot(acc_z_filtered[last_off:i_sample-int(check_win_len/5)])
+                        plt.plot(gyr_x_filtered[last_off:i_sample])
+                        plt.grid()
+                        plt.show()
+                    last_off = last_off + int(self._sampling_fre * 1.1)     # skip this step
         return strike_list, off_list
 
     def show_IMU_data_and_strike_off(self, estimated_strike_indexes, estimated_off_indexes):

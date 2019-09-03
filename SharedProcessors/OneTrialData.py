@@ -116,7 +116,7 @@ class OneTrialData:
         return IMU_data, param_data, subtrial_array
 
     def get_data_by_step(self, IMU_location, param_name, acc=True, gyr=True, mag=False):
-
+        # 重新写这个函数，重点是要IMU strike/off 和 Vicon strike/off分离，在IMU 数据附近找对应的vicon数据
         """
         GRFz: from strike to off
         acc and gyr: from off to off because information before strike might be useful
