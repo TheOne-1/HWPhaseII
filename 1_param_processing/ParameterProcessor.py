@@ -215,8 +215,8 @@ class ParamProcessor:
         r_PSIS = gait_data_df[['RIPS_x', 'RIPS_y', 'RIPS_z']].values
         middle_PSIS = (l_PSIS + r_PSIS) / 2
         vertical_vector = C7 - middle_PSIS
-        trunk_ml_angle = - 180 / np.pi * np.arctan(vertical_vector[:, 0] / vertical_vector[:, 2])
-        trunk_ap_angle = - 180 / np.pi * np.arctan(vertical_vector[:, 1] / vertical_vector[:, 2])
+        trunk_ml_angle = 180 / np.pi * np.arctan(vertical_vector[:, 0] / vertical_vector[:, 2])
+        trunk_ap_angle = 180 / np.pi * np.arctan(vertical_vector[:, 1] / vertical_vector[:, 2])
         return trunk_ml_angle, trunk_ap_angle
 
     @staticmethod

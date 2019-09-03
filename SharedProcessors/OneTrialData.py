@@ -37,7 +37,7 @@ class OneTrialData:
     def __init_subtrial_ends(self, readme_xls):
         readme_sheet = xlrd.open_workbook(readme_xls).sheet_by_index(0)
         trial_id = TRIAL_NAMES.index(self._trial_name)
-        if 'FPA' in self._trial_name:
+        if 'FPA' in self._trial_name or 'static trunk' in self._trial_name:
             self.__subtrial_ends = readme_sheet.row_values(trial_id + 2)[6:11]
         elif 'trunk' in self._trial_name:
             self.__subtrial_ends = readme_sheet.row_values(trial_id + 2)[6:12]

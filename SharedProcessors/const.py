@@ -5,7 +5,7 @@ TRIAL_NAMES = ['static', 'static trunk', 'baseline 10', 'FPA 10', 'trunk 10', 'b
                'baseline 14', 'FPA 14', 'trunk 14']
 
 SUB_AND_TRIALS = {'190803LiJiayi': TRIAL_NAMES, '190806SunDongxiao': TRIAL_NAMES, '190806WangDianxin': TRIAL_NAMES,
-                  '190810LiuSensen': TRIAL_NAMES, '190815QiuYue': TRIAL_NAMES, '190815WangHan': TRIAL_NAMES,
+                  '190810LiuSensen': TRIAL_NAMES, '190815WangHan': TRIAL_NAMES, '190815QiuYue': TRIAL_NAMES,
                   '190816YangCan': TRIAL_NAMES, '190820FuZhenzhen': TRIAL_NAMES, '190820FuZhinan': TRIAL_NAMES,
                   '190822HeMing': TRIAL_NAMES, '190826MouRongzi': TRIAL_NAMES, '190828LiangJie': TRIAL_NAMES,
                   '190829JiBin': TRIAL_NAMES, '190829ZhaoJiamin': TRIAL_NAMES, '190831XieJie': TRIAL_NAMES,
@@ -27,6 +27,8 @@ for key in SUB_AND_WALKING_TRIALS.keys():
         SUB_AND_WALKING_TRIALS[key].remove('static trunk')
 
 WALKING_TRIALS = SUB_AND_WALKING_TRIALS[SUB_NAMES[0]]
+
+TRUNK_TRIALS = (TRIAL_NAMES[1], TRIAL_NAMES[4], TRIAL_NAMES[7], TRIAL_NAMES[10])
 
 # in Haisheng sensor's column names, x and y are switched to make it the same as Xsens column
 COLUMN_NAMES_HAISHENG = ['hour', 'minute', 'second', 'millisecond', 'acc_y', 'acc_x', 'acc_z', 'gyr_y', 'gyr_x',

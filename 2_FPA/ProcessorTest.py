@@ -66,7 +66,6 @@ def kalman_orientation(data_df, IMU_location, yaw_correction, l_strikes, l_offs)
         if len(l_off) == 1:      # stance phase detected
             stance_phase_flag[l_strike + 10:l_off[0] - 15] = True
 
-
     delta_t = 100 / MOCAP_SAMPLE_RATE
     euler_angles_esti = np.zeros([data_len, 3])
     for i_sample in range(data_len):
