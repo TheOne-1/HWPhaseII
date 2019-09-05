@@ -22,7 +22,6 @@ class Processor:
         self.do_output_norm = do_output_norm
         self.param_name = param_name
         self.IMU_location = IMU_location
-        self.cal_angle = 0
         self.train_obj = DataReader(train_sub_and_trials, param_name, sensor_sampling_fre, grf_side, IMU_location)
         if test_sub_and_trials is not None:
             self.test_obj = DataReader(test_sub_and_trials, param_name, sensor_sampling_fre, grf_side, IMU_location)
