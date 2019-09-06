@@ -22,15 +22,15 @@ class Evaluation:
 
     @staticmethod
     def _get_all_scores(y_test, y_pred, precision=None):
-        R2 = r2_score(y_test, y_pred, multioutput='raw_values')
+        correlation_coeff = pearsonr(y_test, y_pred)[0]
         RMSE = sqrt(mean_squared_error(y_test, y_pred, multioutput='raw_values'))
         errors = y_test - y_pred
         mean_error = np.mean(errors, axis=0)
         if precision:
-            R2 = np.round(R2, precision)
+            correlation_coeff = np.round(correlation_coeff, precision)
             RMSE = np.round(RMSE, precision)
             mean_error = np.round(mean_error, precision)
-        return R2, RMSE, mean_error
+        return correlation_coeff, RMSE, mean_error
 
     def evaluate_sklearn(self, model, title=''):
         model.fit(self._x_train, self._y_train)

@@ -115,6 +115,26 @@ class OneTrialData:
                 subtrial_start = subtrial_end
         return IMU_data, param_data, subtrial_array
 
+    def get_data_by_sample_with_strike_off(self, IMU_location, param_name, acc=True, gyr=True, mag=False):
+        if 'FPA' in param_name:
+            param_data = self.gait_param_df[self._side + '_' + param_name].values
+        else:
+            param_data = self.gait_param_df[param_name].values
+
+        IMU_data = self.get_one_IMU_data(IMU_location, acc, gyr, mag)
+        strike_off_data = self.gait_param_df[['strikes_IMU_lfilter', 'offs_IMU_lfilter']]
+        input_data = np.column_stack([IMU_data, strike_off_data])
+        subtrial_array = np.zeros([IMU_data.shape[0]])
+        if self.__subtrial_ends is not None:
+            subtrial_ends_sorted = self.__subtrial_ends[:]
+            subtrial_ends_sorted.sort()
+            subtrial_start = 0
+            for subtrial_end in subtrial_ends_sorted:
+                subtrial_id = self.__subtrial_ends.index(subtrial_end)
+                subtrial_array[subtrial_start:subtrial_end+1] = subtrial_id
+                subtrial_start = subtrial_end
+        return input_data, param_data, subtrial_array
+
     def get_data_by_step(self, IMU_location, param_name, acc=True, gyr=True, mag=False):
         # 重新写这个函数，重点是要IMU strike/off 和 Vicon strike/off分离，在IMU 数据附近找对应的vicon数据
         """

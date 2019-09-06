@@ -11,7 +11,7 @@ class Processor:
         """
 
         :param data_type: int
-            0 for sample based data, 1 for step based data
+            0 for sample based data, 1 for sample based data with strike off, 2 for step based data
         :return:
         """
         self.train_sub_and_trials = train_sub_and_trials
@@ -30,6 +30,9 @@ class Processor:
             self.train_data = self.train_obj.prepare_data_by_sample()
             self.test_data = self.test_obj.prepare_data_by_sample()
         elif data_type == 1:
+            self.train_data = self.train_obj.prepare_data_by_with_strike_off()
+            self.test_data = self.test_obj.prepare_data_by_with_strike_off()
+        elif data_type == 2:
             self.train_data = self.train_obj.prepare_data_by_step()
             self.test_data = self.test_obj.prepare_data_by_step()
         else:

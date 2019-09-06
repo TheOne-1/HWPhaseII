@@ -2,13 +2,22 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="ca8af767-086f-4eee-a576-8e51e088d70e" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/2_FPA/2_init_static_offset.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/0_preprocessing/0_initialize_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/0_preprocessing/0_initialize_data.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/1_param_processing/1_initialize_parameter.py" beforeDir="false" afterPath="$PROJECT_DIR$/1_param_processing/1_initialize_parameter.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/1_param_processing/ParameterProcessor.py" beforeDir="false" afterPath="$PROJECT_DIR$/1_param_processing/ParameterProcessor.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/1_param_processing/StrikeOffDetectorIMU.py" beforeDir="false" afterPath="$PROJECT_DIR$/1_param_processing/StrikeOffDetectorIMU.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/2_FPA/2_FPA_kalman_filter.py" beforeDir="false" afterPath="$PROJECT_DIR$/2_FPA/2_FPA_kalman_filter.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/2_FPA/ProcessorFPA.py" beforeDir="false" afterPath="$PROJECT_DIR$/2_FPA/ProcessorFPA.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/2_FPA/ProcessorTest.py" beforeDir="false" afterPath="$PROJECT_DIR$/2_FPA/ProcessorTest.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/2_FPA/test.py" beforeDir="false" afterPath="$PROJECT_DIR$/2_FPA/test.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/3_trunk/3_trunk.py" beforeDir="false" afterPath="$PROJECT_DIR$/3_trunk/3_trunk.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SharedProcessors/DataReader.py" beforeDir="false" afterPath="$PROJECT_DIR$/SharedProcessors/DataReader.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SharedProcessors/Evaluation.py" beforeDir="false" afterPath="$PROJECT_DIR$/SharedProcessors/Evaluation.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/SharedProcessors/OneTrialData.py" beforeDir="false" afterPath="$PROJECT_DIR$/SharedProcessors/OneTrialData.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SharedProcessors/Processor.py" beforeDir="false" afterPath="$PROJECT_DIR$/SharedProcessors/Processor.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/SharedProcessors/const.py" beforeDir="false" afterPath="$PROJECT_DIR$/SharedProcessors/const.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -20,48 +29,24 @@
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/3_trunk/3_trunk.py">
+        <entry file="file://$PROJECT_DIR$/2_FPA/2_FPA_kalman_filter.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="299">
-              <caret line="15" column="47" selection-start-line="15" selection-start-column="47" selection-end-line="15" selection-end-column="47" />
+            <state relative-caret-position="154">
+              <caret line="7" column="24" selection-start-line="7" selection-start-column="24" selection-end-line="7" selection-end-column="24" />
               <folding>
-                <element signature="e#0#32#0" expanded="true" />
+                <element signature="e#0#41#0" expanded="true" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
       <file pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/0_preprocessing/0_initialize_data.py">
+        <entry file="file://$PROJECT_DIR$/2_FPA/ProcessorFPA.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="88">
-              <caret line="4" column="31" selection-start-line="4" selection-start-column="31" selection-end-line="4" selection-end-column="31" />
+            <state relative-caret-position="716">
+              <caret line="39" column="42" lean-forward="true" selection-start-line="39" selection-start-column="42" selection-end-line="39" selection-end-column="42" />
               <folding>
-                <element signature="e#0#46#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/0_preprocessing/IMUSensorReader.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="548">
-              <caret line="59" column="26" selection-start-line="59" selection-start-column="8" selection-end-line="59" selection-end-column="26" />
-              <folding>
-                <element signature="e#0#29#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/0_preprocessing/XsensReader.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1540">
-              <caret line="70" column="15" selection-start-line="70" selection-start-column="12" selection-end-line="70" selection-end-column="15" />
-              <folding>
-                <element signature="e#0#19#0" expanded="true" />
+                <element signature="e#0#31#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -70,8 +55,11 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/SharedProcessors/const.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="132">
-              <caret line="7" column="64" selection-start-line="7" selection-start-column="51" selection-end-line="7" selection-end-column="64" />
+            <state relative-caret-position="-44">
+              <caret line="7" column="34" selection-start-line="7" selection-start-column="19" selection-end-line="7" selection-end-column="34" />
+              <folding>
+                <element signature="e#0#18#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -87,21 +75,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>get_one_IMU_data</find>
-      <find>lfilter</find>
-      <find>sheet_by_index</find>
-      <find>readme_sheet</find>
-      <find>param_name</find>
-      <find>/</find>
-      <find>/ 3</find>
-      <find>300</find>
-      <find>readme_xls</find>
-      <find>trial_num</find>
-      <find>!!!</find>
-      <find>draw_subtrial_output_error_bar</find>
-      <find>['</find>
-      <find>strike</find>
-      <find>quat</find>
       <find>self._</find>
       <find>/ 4</find>
       <find>filter</find>
@@ -112,11 +85,26 @@
       <find>f_2_z</find>
       <find>stats</find>
       <find>stats`</find>
-      <find>pea</find>
       <find>check</find>
       <find>kal</find>
       <find>show</find>
       <find>try</find>
+      <find>for step in steps:</find>
+      <find>steps</find>
+      <find>get_legal_steps</find>
+      <find>insert</find>
+      <find>strike</find>
+      <find>map</find>
+      <find>self.</find>
+      <find>pea</find>
+      <find>data_filt</find>
+      <find>!!!</find>
+      <find>180</find>
+      <find>DATA_FILT</find>
+      <find>FILTER_DEL</find>
+      <find>csv</find>
+      <find>fpa_all</find>
+      <find>`</find>
     </findStrings>
     <replaceStrings>
       <replace>IPS</replace>
@@ -144,24 +132,28 @@
         <option value="$PROJECT_DIR$/SharedProcessors/AllSubData.py" />
         <option value="$PROJECT_DIR$/SharedProcessors/DataExtractor.py" />
         <option value="$PROJECT_DIR$/2_FPA/2_FPA.py" />
-        <option value="$PROJECT_DIR$/SharedProcessors/DataReader.py" />
-        <option value="$PROJECT_DIR$/2_FPA/2_FPA_kalman_filter.py" />
-        <option value="$PROJECT_DIR$/2_FPA/ProcessorFPA.py" />
         <option value="$PROJECT_DIR$/0_preprocessing/XsensReader.py" />
         <option value="$PROJECT_DIR$/0_preprocessing/GyrSimulator.py" />
         <option value="$PROJECT_DIR$/0_preprocessing/Initializer.py" />
-        <option value="$PROJECT_DIR$/2_FPA/test.py" />
-        <option value="$PROJECT_DIR$/1_param_processing/StrikeOffDetectorIMU.py" />
         <option value="$PROJECT_DIR$/SharedProcessors/DataStruct.py" />
-        <option value="$PROJECT_DIR$/SharedProcessors/Processor.py" />
         <option value="$PROJECT_DIR$/3_trunk/ProcessorTrunk.py" />
-        <option value="$PROJECT_DIR$/SharedProcessors/OneTrialData.py" />
-        <option value="$PROJECT_DIR$/SharedProcessors/const.py" />
-        <option value="$PROJECT_DIR$/1_param_processing/ParameterProcessor.py" />
-        <option value="$PROJECT_DIR$/1_param_processing/1_initialize_parameter.py" />
-        <option value="$PROJECT_DIR$/2_FPA/ProcessorTest.py" />
-        <option value="$PROJECT_DIR$/3_trunk/3_trunk.py" />
+        <option value="$PROJECT_DIR$/1_param_processing/StrikeOffDetectorIMU.py" />
         <option value="$PROJECT_DIR$/0_preprocessing/0_initialize_data.py" />
+        <option value="$PROJECT_DIR$/SharedProcessors/const.py" />
+        <option value="$PROJECT_DIR$/SharedProcessors/Processor.py" />
+        <option value="$PROJECT_DIR$/SharedProcessors/DataReader.py" />
+        <option value="$PROJECT_DIR$/SharedProcessors/OneTrialData.py" />
+        <option value="$PROJECT_DIR$/.gitignore" />
+        <option value="$PROJECT_DIR$/SharedProcessors/Evaluation.py" />
+        <option value="$PROJECT_DIR$/2_FPA/test2.py" />
+        <option value="$PROJECT_DIR$/2_FPA/ProcessorTest.py" />
+        <option value="$PROJECT_DIR$/1_param_processing/1_initialize_parameter.py" />
+        <option value="$PROJECT_DIR$/2_FPA/test.py" />
+        <option value="$PROJECT_DIR$/1_param_processing/ParameterProcessor.py" />
+        <option value="$PROJECT_DIR$/3_trunk/3_trunk.py" />
+        <option value="$PROJECT_DIR$/2_FPA/2_init_static_offset.py" />
+        <option value="$PROJECT_DIR$/2_FPA/ProcessorFPA.py" />
+        <option value="$PROJECT_DIR$/2_FPA/2_FPA_kalman_filter.py" />
       </list>
     </option>
   </component>
@@ -203,11 +195,6 @@
               <item name="190807DataProcessPhaseII" type="462c0819:PsiDirectoryNode" />
               <item name="3_trunk" type="462c0819:PsiDirectoryNode" />
             </path>
-            <path>
-              <item name="190807DataProcessPhaseII" type="b2602c69:ProjectViewProjectNode" />
-              <item name="190807DataProcessPhaseII" type="462c0819:PsiDirectoryNode" />
-              <item name="SharedProcessors" type="462c0819:PsiDirectoryNode" />
-            </path>
           </expand>
           <select />
         </subPane>
@@ -216,7 +203,7 @@
     </panes>
   </component>
   <component name="PropertiesComponent">
-    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/../190109LoadingRateFeasibility/python" />
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
   <component name="RecentsManager">
@@ -244,28 +231,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Python.0_initialize_data">
-    <configuration name="0_initialize_data" type="PythonConfigurationType" factoryName="Python" singleton="false" temporary="true">
-      <module name="190807DataProcessPhaseII" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/0_preprocessing" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/0_preprocessing/0_initialize_data.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
+  <component name="RunManager" selected="Python.2_FPA_kalman_filter">
     <configuration name="1_initialize_parameter" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="190807DataProcessPhaseII" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -308,7 +274,28 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="3_trunk" type="PythonConfigurationType" factoryName="Python" singleton="false" temporary="true">
+    <configuration name="2_init_static_offset" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <module name="190807DataProcessPhaseII" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/2_FPA" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/2_FPA/2_init_static_offset.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="3_trunk" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="190807DataProcessPhaseII" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -351,19 +338,19 @@
       <method v="2" />
     </configuration>
     <list>
-      <item itemvalue="Python.0_initialize_data" />
       <item itemvalue="Python.1_initialize_parameter" />
       <item itemvalue="Python.2_FPA_kalman_filter" />
-      <item itemvalue="Python.3_trunk" />
       <item itemvalue="Python.test" />
+      <item itemvalue="Python.2_init_static_offset" />
+      <item itemvalue="Python.3_trunk" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.0_initialize_data" />
-        <item itemvalue="Python.3_trunk" />
-        <item itemvalue="Python.1_initialize_parameter" />
-        <item itemvalue="Python.test" />
         <item itemvalue="Python.2_FPA_kalman_filter" />
+        <item itemvalue="Python.2_init_static_offset" />
+        <item itemvalue="Python.3_trunk" />
+        <item itemvalue="Python.test" />
+        <item itemvalue="Python.1_initialize_parameter" />
       </list>
     </recent_temporary>
   </component>
@@ -393,12 +380,12 @@
     <frame x="-1928" y="0" width="1936" height="1056" extended-state="6" />
     <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.13382508" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.13382508" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" weight="0.3286334" />
-      <window_info active="true" anchor="bottom" id="Run" order="2" sideWeight="0.49947312" visible="true" weight="0.329718" />
+      <window_info anchor="bottom" id="Run" order="2" sideWeight="0.49947312" weight="0.3329718" />
       <window_info anchor="bottom" id="Debug" order="3" sideWeight="0.49947312" weight="0.3991323" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
@@ -416,34 +403,14 @@
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/2_FPA/ProcessorFPA.py</url>
-          <line>35</line>
-          <option name="timeStamp" value="105" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/SharedProcessors/Evaluation.py</url>
-          <line>24</line>
-          <option name="timeStamp" value="115" />
+          <line>25</line>
+          <option name="timeStamp" value="152" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/SharedProcessors/Processor.py</url>
-          <line>53</line>
-          <option name="timeStamp" value="116" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/3_trunk/ProcessorTrunk.py</url>
-          <line>19</line>
-          <option name="timeStamp" value="117" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/SharedProcessors/DataStruct.py</url>
-          <line>75</line>
-          <option name="timeStamp" value="120" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/SharedProcessors/DataReader.py</url>
-          <line>34</line>
-          <option name="timeStamp" value="122" />
+          <url>file://$PROJECT_DIR$/2_FPA/2_init_static_offset.py</url>
+          <line>45</line>
+          <option name="timeStamp" value="169" />
         </line-breakpoint>
       </breakpoints>
       <default-breakpoints>
@@ -549,13 +516,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/2_FPA/2_FPA_kalman_filter.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state>
-          <caret selection-end-line="11" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$APPLICATION_HOME_DIR$/helpers/pydev/_pydev_imps/_pydev_execfile.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="374">
@@ -591,144 +551,12 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/2_FPA/ProcessorFPA.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-308">
-          <caret line="8" column="21" lean-forward="true" selection-start-line="8" selection-start-column="21" selection-end-line="8" selection-end-column="21" />
-          <folding>
-            <element signature="e#0#31#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/configuration.txt">
-      <provider selected="true" editor-type-id="text-editor">
-        <state>
-          <caret column="64" selection-start-column="64" selection-end-column="64" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://E:/ProgramFiles/Python368/Lib/site-packages/transforms3d/euler.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-529">
-          <caret line="163" column="4" selection-start-line="163" selection-start-column="4" selection-end-line="163" selection-end-column="4" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/0_preprocessing/Initializer.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="230">
           <caret line="16" column="62" selection-start-line="16" selection-start-column="62" selection-end-line="16" selection-end-column="62" />
           <folding>
             <element signature="e#0#19#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/1_param_processing/StrikeOffDetectorIMU.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="164">
-          <caret line="196" lean-forward="true" selection-start-line="196" selection-end-line="196" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/SharedProcessors/OneTrialData.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="212">
-          <caret line="39" selection-start-line="39" selection-end-line="39" />
-          <folding>
-            <element signature="e#0#177#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/1_param_processing/ParameterProcessor.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="374">
-          <caret line="217" column="25" selection-start-line="217" selection-start-column="25" selection-end-line="217" selection-end-column="25" />
-          <folding>
-            <element signature="e#0#19#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/3_trunk/ProcessorTrunk.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="238">
-          <caret line="19" selection-start-line="19" selection-end-line="19" />
-          <folding>
-            <element signature="e#98#129#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/SharedProcessors/DataStruct.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="432">
-          <caret line="75" selection-start-line="75" selection-end-line="75" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/SharedProcessors/Processor.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="322">
-          <caret line="29" column="61" selection-start-line="29" selection-start-column="61" selection-end-line="29" selection-end-column="61" />
-          <folding>
-            <element signature="e#0#31#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/SharedProcessors/DataReader.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="154">
-          <caret line="22" column="50" lean-forward="true" selection-start-line="22" selection-start-column="50" selection-end-line="22" selection-end-column="50" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/SharedProcessors/Evaluation.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="189">
-          <caret line="24" selection-start-line="24" selection-end-line="24" />
-          <folding>
-            <element signature="e#0#18#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/1_param_processing/1_initialize_parameter.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="44">
-          <caret line="2" lean-forward="true" selection-start-line="2" selection-end-line="2" />
-          <folding>
-            <element signature="e#0#87#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/2_FPA/test.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="66">
-          <caret line="3" column="11" lean-forward="true" selection-start-line="3" selection-start-column="11" selection-end-line="3" selection-end-column="11" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/2_FPA/ProcessorTest.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="286">
-          <caret line="67" selection-start-line="67" selection-end-line="67" />
-          <folding>
-            <element signature="e#0#18#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/3_trunk/3_trunk.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="299">
-          <caret line="15" column="47" selection-start-line="15" selection-start-column="47" selection-end-line="15" selection-end-column="47" />
-          <folding>
-            <element signature="e#0#32#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -740,13 +568,6 @@
           <folding>
             <element signature="e#0#18#0" expanded="true" />
           </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/SharedProcessors/const.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="132">
-          <caret line="7" column="64" selection-start-line="7" selection-start-column="51" selection-end-line="7" selection-end-column="64" />
         </state>
       </provider>
     </entry>
@@ -772,10 +593,190 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/0_preprocessing/0_initialize_data.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="88">
-          <caret line="4" column="31" selection-start-line="4" selection-start-column="31" selection-end-line="4" selection-end-column="31" />
+        <state relative-caret-position="44">
+          <caret line="3" column="34" selection-start-line="3" selection-start-column="34" selection-end-line="3" selection-end-column="34" />
           <folding>
             <element signature="e#0#46#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://E:/ProgramFiles/Python368/Lib/site-packages/pandas/core/indexes/base.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="176">
+          <caret line="2658" selection-start-line="2658" selection-end-line="2658" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://E:/ProgramFiles/Python368/Lib/site-packages/transforms3d/euler.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="65">
+          <caret line="163" column="4" selection-start-line="163" selection-start-column="4" selection-end-line="163" selection-end-column="4" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/.gitignore">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="44">
+          <caret line="2" column="17" selection-start-line="2" selection-start-column="17" selection-end-line="2" selection-end-column="17" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/configuration.txt">
+      <provider selected="true" editor-type-id="text-editor">
+        <state>
+          <caret column="77" selection-start-column="77" selection-end-column="77" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SharedProcessors/Evaluation.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="748">
+          <caret line="44" column="28" selection-start-line="44" selection-start-column="27" selection-end-line="44" selection-end-column="28" />
+          <folding>
+            <element signature="e#0#18#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/2_FPA/test2.py" />
+    <entry file="file://$PROJECT_DIR$/1_param_processing/1_initialize_parameter.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="66">
+          <caret line="3" column="36" selection-start-line="3" selection-start-column="36" selection-end-line="3" selection-end-column="36" />
+          <folding>
+            <element signature="e#0#87#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/1_param_processing/StrikeOffDetectorIMU.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="298">
+          <caret line="143" column="8" selection-start-line="143" selection-start-column="8" selection-end-line="143" selection-end-column="8" />
+          <folding>
+            <element signature="e#0#31#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/1_param_processing/ParameterProcessor.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="428">
+          <caret line="320" column="64" selection-start-line="320" selection-start-column="64" selection-end-line="320" selection-end-column="64" />
+          <folding>
+            <element signature="e#0#19#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/2_FPA/test.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="264">
+          <caret line="12" column="90" lean-forward="true" selection-start-line="12" selection-start-column="13" selection-end-line="12" selection-end-column="90" />
+          <folding>
+            <element signature="e#0#66#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SharedProcessors/DataStruct.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="154">
+          <caret line="68" column="15" selection-start-line="68" selection-start-column="8" selection-end-line="68" selection-end-column="15" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SharedProcessors/OneTrialData.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="168">
+          <caret line="58" selection-start-line="58" selection-end-line="58" />
+          <folding>
+            <element signature="e#0#177#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/3_trunk/ProcessorTrunk.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="264">
+          <caret line="12" column="28" selection-start-line="12" selection-start-column="8" selection-end-line="12" selection-end-column="28" />
+          <folding>
+            <element signature="e#98#129#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/2_FPA/ProcessorTest.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="374">
+          <caret line="185" selection-start-line="185" selection-end-line="205" selection-end-column="23" />
+          <folding>
+            <element signature="e#0#18#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/3_trunk/3_trunk.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="308">
+          <caret line="15" column="32" selection-start-line="15" selection-start-column="32" selection-end-line="15" selection-end-column="32" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/2_FPA/2_init_static_offset.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="370">
+          <caret line="45" selection-start-line="45" selection-end-line="45" />
+          <folding>
+            <element signature="e#0#48#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SharedProcessors/DataReader.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="197">
+          <caret line="49" selection-start-line="49" selection-end-line="49" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SharedProcessors/Processor.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="176">
+          <caret line="54" selection-start-line="54" selection-end-line="54" />
+          <folding>
+            <element signature="e#0#31#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SharedProcessors/const.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-44">
+          <caret line="7" column="34" selection-start-line="7" selection-start-column="19" selection-end-line="7" selection-end-column="34" />
+          <folding>
+            <element signature="e#0#18#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/2_FPA/2_FPA_kalman_filter.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="154">
+          <caret line="7" column="24" selection-start-line="7" selection-start-column="24" selection-end-line="7" selection-end-column="24" />
+          <folding>
+            <element signature="e#0#41#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/2_FPA/ProcessorFPA.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="716">
+          <caret line="39" column="42" lean-forward="true" selection-start-line="39" selection-start-column="42" selection-end-line="39" selection-end-column="42" />
+          <folding>
+            <element signature="e#0#31#0" expanded="true" />
           </folding>
         </state>
       </provider>

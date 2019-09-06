@@ -29,6 +29,7 @@ for key in SUB_AND_WALKING_TRIALS.keys():
 WALKING_TRIALS = SUB_AND_WALKING_TRIALS[SUB_NAMES[0]]
 
 TRUNK_TRIALS = (TRIAL_NAMES[1], TRIAL_NAMES[4], TRIAL_NAMES[7], TRIAL_NAMES[10])
+FPA_TRIALS = (TRIAL_NAMES[3], TRIAL_NAMES[6], TRIAL_NAMES[9])
 
 # in Haisheng sensor's column names, x and y are switched to make it the same as Xsens column
 COLUMN_NAMES_HAISHENG = ['hour', 'minute', 'second', 'millisecond', 'acc_y', 'acc_x', 'acc_z', 'gyr_y', 'gyr_x',

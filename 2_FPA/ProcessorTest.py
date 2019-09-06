@@ -66,7 +66,7 @@ def kalman_orientation(data_df, IMU_location, yaw_correction, l_strikes, l_offs)
         if len(l_off) == 1:      # stance phase detected
             stance_phase_flag[l_strike + 10:l_off[0] - 15] = True
 
-    delta_t = 100 / MOCAP_SAMPLE_RATE
+    delta_t = np.rad2deg(1) / MOCAP_SAMPLE_RATE
     euler_angles_esti = np.zeros([data_len, 3])
     for i_sample in range(data_len):
         euler_angles_esti[i_sample, :] = euler_angles_esti[i_sample-1, :] + delta_t * (gyr_IMU[i_sample, :] + gyr_IMU[i_sample, :]) / 2
@@ -84,7 +84,30 @@ def kalman_orientation(data_df, IMU_location, yaw_correction, l_strikes, l_offs)
     return euler_angles_esti
 
 
+def get_mean_FPA_max_acc_ratio(acc_IMU_rotated, l_strikes, l_offs):
+    win_len = 40
+    mean_FPAs = []
+    for l_strike in l_strikes:
+        l_off = l_offs[l_offs > l_strike]
+        l_off = l_off[l_off < l_strike + 200]
+        if len(l_off) == 1:      # stance phase detected
+            l_off = l_off[0]
+            max_acc_x = np.max(acc_IMU_rotated[l_off:l_off+win_len, 0])
+            max_acc_y = np.max(acc_IMU_rotated[l_off:l_off+win_len, 1])
+            mean_FPA = np.arctan2(max_acc_x, max_acc_y) * 180 / np.pi
+            mean_FPAs.append(mean_FPA)
+
+    #         plt.plot(start_sample, angles[start_sample], 'gx')
+    #         plt.plot(end_sample, angles[end_sample], 'rx')
+    # plt.show()
+    return mean_FPAs
+
+
 def get_mean_FPA(angles, l_strikes, l_offs, start_phase, end_phase):
+
+    # # !!!
+    # plt.plot(angles)
+
     mean_FPAs = []
     for l_strike in l_strikes:
         l_off = l_offs[l_offs > l_strike]
@@ -95,6 +118,11 @@ def get_mean_FPA(angles, l_strikes, l_offs, start_phase, end_phase):
             end_sample = int(l_strike + end_phase * (l_off - l_strike))
             mean_FPA = np.mean(angles[start_sample:end_sample])
             mean_FPAs.append(mean_FPA)
+
+    #         plt.plot(start_sample, angles[start_sample], 'gx')
+    #         plt.plot(end_sample, angles[end_sample], 'rx')
+    # plt.show()
+
     return mean_FPAs
 
 
@@ -103,15 +131,43 @@ def get_angles_via_acc_ratio(data_df, IMU_location, euler_angles):
     acc_IMU = data_df[axis_name_acc].values
     acc_IMU = data_filt(acc_IMU, 6, MOCAP_SAMPLE_RATE)
 
+    acc_IMU_rotated = np.zeros(acc_IMU.shape)
     data_len = acc_IMU.shape[0]
-    angles = np.zeros([data_len])
     euler_angles = euler_angles / 180 * np.pi
     for i_sample in range(data_len):
-        acc_foot = acc_IMU[i_sample, :]
-        # dcm_mat = euler2mat(euler_angles[i_sample, 0], euler_angles[i_sample, 1], 0)
-        # acc_foot = np.matmul(dcm_mat, acc_foot.T)
-        angles[i_sample] = np.arctan2(acc_foot[0], abs(acc_foot[1])) * 180 / np.pi
-    return angles
+        dcm_mat = euler2mat(euler_angles[i_sample, 0], euler_angles[i_sample, 1], 0)
+        acc_IMU_rotated[i_sample, :] = np.matmul(dcm_mat, acc_IMU[i_sample, :].T)
+
+    # plt.plot(acc_IMU_rotated[:, 0])
+    # plt.plot(acc_IMU_rotated[:, 1])
+    # plt.plot(l_offs, acc_IMU_rotated[:, 1][l_offs], 'rx')
+    # plt.grid()
+    # plt.show()
+
+    angles = np.arctan2(acc_IMU_rotated[:, 0], abs(acc_IMU_rotated[:, 1])) * 180 / np.pi
+    return angles, acc_IMU_rotated
+
+
+# def get_angles_via_max_acc_ratio(data_df, IMU_location, euler_angles):
+#     axis_name_acc = [IMU_location + '_acc_' + axis for axis in ['x', 'y', 'z']]
+#     acc_IMU = data_df[axis_name_acc].values
+#     acc_IMU = data_filt(acc_IMU, 6, MOCAP_SAMPLE_RATE)
+#
+#     acc_IMU_rotated = np.zeros(acc_IMU.shape)
+#     data_len = acc_IMU.shape[0]
+#     euler_angles = euler_angles / 180 * np.pi
+#     for i_sample in range(data_len):
+#         dcm_mat = euler2mat(euler_angles[i_sample, 0], euler_angles[i_sample, 1], 0)
+#         acc_IMU_rotated[i_sample, :] = np.matmul(dcm_mat, acc_IMU[i_sample, :].T)
+#
+#     # plt.plot(acc_IMU_rotated[:, 0])
+#     # plt.plot(acc_IMU_rotated[:, 1])
+#     # plt.plot(l_offs, acc_IMU_rotated[:, 1][l_offs], 'rx')
+#     # plt.grid()
+#     # plt.show()
+#
+#     angles = np.arctan2(acc_IMU_rotated[:, 0], abs(acc_IMU_rotated[:, 1])) * 180 / np.pi
+#     return angles, acc_IMU_rotated
 
 
 def get_angles_via_gyr_ratio(data_df, IMU_location):

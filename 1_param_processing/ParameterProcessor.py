@@ -9,14 +9,14 @@ from StrikeOffDetectorIMU import StrikeOffDetectorIMU, StrikeOffDetectorIMUFilte
 
 
 class ParamProcessor:
-    def __init__(self, sub_name, readme_xls, trials, plot_strike_off=False,
+    def __init__(self, sub_name, readme_xls, trials, plot_strike_off=False, check_steps=False,
                  initialize_100Hz=True, initialize_200Hz=True):
         self._sub_name = sub_name
         readme_sheet = xlrd.open_workbook(readme_xls).sheet_by_index(0)
         self.__weight = readme_sheet.cell_value(17, 1)  # in kilos
         self.__height = readme_sheet.cell_value(18, 1)  # in meters
         self.__plot_strike_off = plot_strike_off
-        self.__initialize_thresholds()
+        self.__check_steps = check_steps
         self.__initialize_100Hz = initialize_100Hz
         self.__initialize_200Hz = initialize_200Hz
 
@@ -65,18 +65,15 @@ class ParamProcessor:
             steps_resampled.append(step_resampled)
         return steps_resampled
 
-    def __initialize_thresholds(self):
-        self._stance_phase_sample_thd_lower = 180
-        self._stance_phase_sample_thd_higher = 380
-        self._impact_peak_sample_num_lower = 15
-        self._impact_peak_sample_num_higher = 80
-        self._20_80_sample_len_lower = 5
-        self._20_80_sample_len_higher = 40
-
     def init_trial_params(self, gait_data_df, sensor_sampling_rate):
         # get strikes and offs
         l_strikes, l_offs = self.get_strike_off(gait_data_df, plate=1)
         r_strikes, r_offs = self.get_strike_off(gait_data_df, plate=2)
+
+        # get steps
+        l_steps = self.get_legal_steps(l_strikes, l_offs, 'l', gait_data_df=gait_data_df)
+        r_steps = self.get_legal_steps(r_strikes, r_offs, 'r', gait_data_df=gait_data_df)
+
         # get FPA and trunk angles
         FPA_all = self.get_FPA_all(gait_data_df)  # FPA of all the samples
         trunk_ml_angle, trunk_ap_angle = self.get_trunk_angles(gait_data_df)
@@ -93,6 +90,10 @@ class ParamProcessor:
             plot_the_strike_off=self.__plot_strike_off)
         param_data_df.insert(len(param_data_df.columns), 'strikes_IMU_lfilter', estimated_strikes_lfilter)
         param_data_df.insert(len(param_data_df.columns), 'offs_IMU_lfilter', estimated_offs_lfilter)
+        l_FPA_steps = self.get_FPA_steps(gait_data_df, FPA_all[:, 0], l_steps)
+        r_FPA_steps = self.get_FPA_steps(gait_data_df, FPA_all[:, 1], r_steps)
+        self.insert_param_data(param_data_df, l_FPA_steps, 'l_FPA_steps')
+        self.insert_param_data(param_data_df, r_FPA_steps, 'r_FPA_steps')
 
         return param_data_df
 
@@ -246,12 +247,6 @@ class ParamProcessor:
         projected_point = np.matmul(the_mat.I, the_array.T)
         return projected_point
 
-    def insert_params_to_param_data(self, param_data_df, params, param_names):
-        if len(params) != len(param_names):
-            raise RuntimeError('The param number and param name number doesn\'t match')
-        for param, param_name in params, param_names:
-            param_data_df.insert(len(param_data_df.columns), param_name, param)
-
     @staticmethod
     def __save_data(folder_path, trial_name, data_all_df):
         # save param data
@@ -315,19 +310,78 @@ class ParamProcessor:
         l_toe = gait_data_df[['LFM2_x', 'LFM2_y', 'LFM2_z']].values
         l_heel = gait_data_df[['LFCC_x', 'LFCC_y', 'LFCC_z']].values
         data_len = l_toe.shape[0]
-        left_FPAs = np.zeros(data_len)
-        for i_point in range(0, data_len):
-            forward_vector = l_toe[i_point, :] - l_heel[i_point, :]
-            left_FPAs[i_point] = - 180 / np.pi * np.arctan(forward_vector[0] / forward_vector[1])
+
+        forward_vector = l_toe - l_heel
+        left_FPAs = - 180 / np.pi * np.arctan2(forward_vector[0], forward_vector[1])
 
         r_toe = gait_data_df[['RFM2_x', 'RFM2_y', 'RFM2_z']].values
         r_heel = gait_data_df[['RFCC_x', 'RFCC_y', 'RFCC_z']].values
-        right_FPAs = np.zeros(data_len)
-        for i_point in range(0, data_len):
-            forward_vector = r_toe[i_point, :] - r_heel[i_point, :]
-            right_FPAs[i_point] = 180 / np.pi * np.arctan(forward_vector[0] / forward_vector[1])
+
+        forward_vector = r_toe - r_heel
+        right_FPAs = 180 / np.pi * np.arctan2(forward_vector[0], forward_vector[1])
 
         return np.column_stack([left_FPAs, right_FPAs])
+
+    def get_FPA_steps(self, gait_data_df, FPA_all, steps):
+        FPA_steps = []
+        for step in steps:
+            sample_20_gait_phase = int(round(step[0] + 0.2 * (step[1] - step[0])))
+            sample_80_gait_phase = int(round(step[0] + 0.8 * (step[1] - step[0])))
+            FPA_step = np.mean(FPA_all[sample_20_gait_phase:sample_80_gait_phase])
+            marker_frame = gait_data_df.loc[round((step[0] + step[1]) / 2), 'marker_frame']
+            FPA_steps.append([FPA_step, marker_frame])
+        return FPA_steps
+
+    def get_legal_steps(self, strikes, offs, side, gait_data_df=None):
+        """
+            Sometimes subjects have their both feet on the ground so it is necessary to do step check.
+        :param strikes:
+        :param offs:
+        :param side:
+        :param gait_data_df:
+        :return:
+        """
+        stance_phase_sample_thd_lower = 0.5 * self._current_fre
+        stance_phase_sample_thd_higher = 1 * self._current_fre
+
+        strike_tuple = np.where(strikes == 1)[0]
+        off_tuple = np.where(offs == 1)[0]
+        steps = []
+        abandoned_step_num = 0
+
+        for strike in strike_tuple:
+            off = off_tuple[strike + stance_phase_sample_thd_lower < off_tuple]
+            off = off[off < strike + stance_phase_sample_thd_higher]
+            if len(off) == 1:
+                off = off[0]
+                steps.append([strike, off])
+            else:
+                abandoned_step_num += 1
+
+        print('For {side} foot steps, {step_num} steps abandonded'.format(side=side, step_num=abandoned_step_num))
+        if self.__check_steps:
+            plt.figure()
+            if side == 'l':
+                grf_z = gait_data_df['f_1_z'].values
+            elif side == 'r':
+                grf_z = gait_data_df['f_2_z'].values
+            else:
+                raise ValueError('Wrong side value')
+
+            for step in steps:
+                plt.plot(grf_z[step[0]:step[1]])
+            plt.show()
+        return steps
+
+    def insert_param_data(self, gait_data_df, insert_list, column_name):
+        data_len = gait_data_df.shape[0]
+        insert_data = np.zeros([data_len])
+        for item in insert_list:
+            row_index = gait_data_df.index[gait_data_df['marker_frame'] == item[1]]
+            if len(row_index) == 0:
+                row_index = gait_data_df.index[gait_data_df['marker_frame'] == item[1] + 1]
+            insert_data[row_index[0]] = item[0]
+        gait_data_df.insert(len(gait_data_df.columns), column_name, insert_data)
 
     @staticmethod
     def __law_of_cosines(vector1, vector2):
@@ -336,33 +390,6 @@ class ParamProcessor:
               inner1d(vector2, vector2) - inner1d(vector3, vector3)
         den = 2 * np.sqrt(inner1d(vector1, vector1)) * np.sqrt(inner1d(vector2, vector2))
         return 180 / np.pi * np.arccos(num / den)
-
-    def test_strike_off(self, path):
-
-        fre_100_path = path + '\\' + self._sub_name + '\\100Hz\\'
-        fre_200_path = path + '\\' + self._sub_name + '\\200Hz\\'
-        fre_1000_path = path + '\\' + self._sub_name + '\\1000Hz\\'
-        self.__initialize_thresholds()
-
-        test_trial_names = TRIAL_NAMES[5:7]
-        for trial_name in test_trial_names:
-            print('\n' + trial_name + ' trial')
-            self._current_trial = trial_name
-            # initialize 100 Hz parameter
-            print('100Hz')
-            gait_data_100_df = pd.read_csv(fre_100_path + trial_name + '.csv', index_col=False)
-            grf_1000_df = pd.read_csv(fre_1000_path + trial_name + '.csv', index_col=False)
-            trial_param_df_100, l_steps_1000, r_steps_1000 = self.init_trial_params(gait_data_100_df, grf_1000_df,
-                                                                                    HAISHENG_SENSOR_SAMPLE_RATE)
-
-            # initialize 200 Hz parameter
-            print('200Hz')
-            gait_data_200_df = pd.read_csv(fre_200_path + trial_name + '.csv', index_col=False)
-            grf_1000_df = pd.read_csv(fre_1000_path + trial_name + '.csv', index_col=False)
-            trial_param_df_200, l_steps_1000, r_steps_1000 = self.init_trial_params(gait_data_200_df, grf_1000_df,
-                                                                                    MOCAP_SAMPLE_RATE)
-            l_steps, r_steps = self.resample_steps(l_steps_1000, 200), self.resample_steps(r_steps_1000, 200)
-        plt.show()
 
 
 class TrunkStaticProcessor(ParamProcessor):
