@@ -25,23 +25,29 @@ class ProcessorFPA(Processor):
         if input_data is None:
             return None, None
 
-        steps, stance_phase_flag = self.initalize_steps_and_stance_phase(input_data)
-        # convert input
-        euler_angles_esti = self.get_kalman_filtered_euler_angles(input_data, id_df['trial_id'].values, stance_phase_flag)
-        acc_IMU_rotated = self.get_rotated_acc(input_data, euler_angles_esti)
-        FPA_estis, FPA_trues = self.get_FPA_via_max_acc_ratio(acc_IMU_rotated, steps, output_data)
-        angle_bias = self.angle_bias[int(id_df['subject_id'][0])]
-        FPA_estis = [fpa + angle_bias for fpa in FPA_estis]
-        # FPA_estis = self.compensate_offset(FPA_estis, id_df)
-        return np.array(FPA_estis), np.array(FPA_trues)
+        sub_ids = id_df['subject_id'].values
+        sub_id_list = list(set(sub_ids))
+        predict_result_df = pd.DataFrame()
 
-    # def compensate_offset(self, FPA_estis, id_df):
-    #     sub_ids = id_df['subject_id'].values
-    #     sub_id_list = list(set(sub_ids))
-    #     for id in sub_id_list:
-    #         id = int(id)
-    #         FPA_estis[sub_ids == id] = FPA_estis[np.where(sub_ids == id)[0]] - self.angle_bias[id]
-    #     return FPA_estis
+        for sub_id in sub_id_list:
+            sub_id = int(sub_id)
+            sub_data_index = id_df['subject_id'] == sub_id
+            input_data_sub = input_data[sub_data_index]
+            output_data_sub = output_data[sub_data_index]
+            steps, stance_phase_flag = self.initalize_steps_and_stance_phase(input_data_sub)
+            # convert input
+            euler_angles_esti = self.get_kalman_filtered_euler_angles(input_data_sub, id_df['trial_id'].values,
+                                                                      stance_phase_flag)
+            acc_IMU_rotated = self.get_rotated_acc(input_data_sub, euler_angles_esti)
+            angle_bias = self.angle_bias[sub_id]
+            FPA_estis, FPA_trues = self.get_FPA_via_max_acc_ratio(acc_IMU_rotated, steps, output_data_sub, angle_bias)
+
+            pearson_coeff, RMSE, mean_error = Evaluation.plot_nn_result(FPA_trues, FPA_estis, title=SUB_NAMES[sub_id])
+            predict_result_df = Evaluation.insert_prediction_result(
+                predict_result_df, SUB_NAMES[sub_id], pearson_coeff, RMSE, mean_error)
+        Evaluation.export_prediction_result(predict_result_df)
+        return None, None
+        # return np.array(FPA_estis), np.array(FPA_trues)
 
     def white_box_solution(self):
         # the algorithm
@@ -90,7 +96,7 @@ class ProcessorFPA(Processor):
             acc_IMU_rotated[i_sample, :] = np.matmul(dcm_mat, acc_IMU[i_sample, :].T)
         return acc_IMU_rotated
 
-    def get_FPA_via_max_acc_ratio(self, acc_IMU_rotated, steps, output_data):
+    def get_FPA_via_max_acc_ratio(self, acc_IMU_rotated, steps, output_data, angle_bias=0):
         filter_delay = int(FILTER_WIN_LEN / 2)
         win_before_off = int(0.08 * self.sensor_sampling_fre)
         win_after_off = int(0.12 * self.sensor_sampling_fre)
@@ -111,8 +117,10 @@ class ProcessorFPA(Processor):
                 # max_acc_y = np.mean(acc_IMU_rotated[max_acc_y_start-2:max_acc_y_start+3, 1])
 
                 the_FPA_esti = np.arctan2(max_acc_x, max_acc_y) * 180 / np.pi
+                # the_FPA_esti = the_FPA_esti + angle_bias        # add the bias
+                the_FPA_esti = (the_FPA_esti + 10) / 1.23        # the empirical function
                 FPA_estis.append(the_FPA_esti)
-        return FPA_estis, FPA_trues
+        return np.array(FPA_estis), np.array(FPA_trues)
 
     def get_kalman_filtered_euler_angles(self, input_data, trial_ids, stance_phase_flag, base_correction_coeff=0.03):
         delta_t = 1 / MOCAP_SAMPLE_RATE

@@ -2,7 +2,8 @@ import pandas as pd
 import numpy as np
 from numpy.core.umath_tests import inner1d
 import matplotlib.pyplot as plt
-from const import TRIAL_NAMES, PLATE_SAMPLE_RATE, MOCAP_SAMPLE_RATE, HAISHENG_SENSOR_SAMPLE_RATE
+from const import TRIAL_NAMES, PLATE_SAMPLE_RATE, MOCAP_SAMPLE_RATE, HAISHENG_SENSOR_SAMPLE_RATE,\
+    FOOT_SENSOR_BROKEN_SUBS
 import xlrd
 from numpy.linalg import norm
 from StrikeOffDetectorIMU import StrikeOffDetectorIMU, StrikeOffDetectorIMUFilter
@@ -41,7 +42,7 @@ class ParamProcessor:
                 gait_data_100_df = pd.read_csv(fre_100_path + trial_name + '.csv', index_col=False)
                 trial_param_df_100 = self.init_trial_params(gait_data_100_df, HAISHENG_SENSOR_SAMPLE_RATE)
                 self.__save_data(fre_100_path, trial_name, trial_param_df_100)
-                plt.show()
+            plt.show()
 
         if self.__initialize_200Hz:
             self.static_data_df = pd.read_csv(fre_200_path + TRIAL_NAMES[0] + '.csv', index_col=False)
@@ -54,7 +55,7 @@ class ParamProcessor:
                 gait_data_200_df = pd.read_csv(fre_200_path + trial_name + '.csv', index_col=False)
                 trial_param_df_200 = self.init_trial_params(gait_data_200_df, MOCAP_SAMPLE_RATE)
                 self.__save_data(fre_200_path, trial_name, trial_param_df_200)
-                plt.show()
+            plt.show()
 
     @staticmethod
     def resample_steps(steps_1000, sample_fre):
@@ -69,6 +70,8 @@ class ParamProcessor:
         # get strikes and offs
         l_strikes, l_offs = self.get_strike_off(gait_data_df, plate=1)
         r_strikes, r_offs = self.get_strike_off(gait_data_df, plate=2)
+        self.check_strikes_offs(-gait_data_df['f_1_z'], l_strikes, l_offs, self._current_trial + '   left foot')
+        self.check_strikes_offs(-gait_data_df['f_2_z'], r_strikes, r_offs, self._current_trial + '   right foot')
 
         # get steps
         l_steps = self.get_legal_steps(l_strikes, l_offs, 'l', gait_data_df=gait_data_df)
@@ -84,16 +87,17 @@ class ParamProcessor:
                                  'trunk_ml_angle', 'trunk_ap_angle']
         param_data_df.insert(0, 'marker_frame', gait_data_df['marker_frame'])
 
-        # get strikes and offs from IMU data
-        estimated_strikes_lfilter, estimated_offs_lfilter = self.get_strike_off_from_imu_lfilter(
-            gait_data_df, param_data_df, sensor_sampling_rate, check_strike_off=True,
-            plot_the_strike_off=self.__plot_strike_off)
-        param_data_df.insert(len(param_data_df.columns), 'strikes_IMU_lfilter', estimated_strikes_lfilter)
-        param_data_df.insert(len(param_data_df.columns), 'offs_IMU_lfilter', estimated_offs_lfilter)
-        l_FPA_steps = self.get_FPA_steps(gait_data_df, FPA_all[:, 0], l_steps)
-        r_FPA_steps = self.get_FPA_steps(gait_data_df, FPA_all[:, 1], r_steps)
-        self.insert_param_data(param_data_df, l_FPA_steps, 'l_FPA_steps')
-        self.insert_param_data(param_data_df, r_FPA_steps, 'r_FPA_steps')
+        if self._sub_name not in FOOT_SENSOR_BROKEN_SUBS:
+            # get strikes and offs from IMU data
+            estimated_strikes_lfilter, estimated_offs_lfilter = self.get_strike_off_from_imu_lfilter(
+                gait_data_df, param_data_df, sensor_sampling_rate, check_strike_off=True,
+                plot_the_strike_off=self.__plot_strike_off)
+            param_data_df.insert(len(param_data_df.columns), 'strikes_IMU_lfilter', estimated_strikes_lfilter)
+            param_data_df.insert(len(param_data_df.columns), 'offs_IMU_lfilter', estimated_offs_lfilter)
+            l_FPA_steps = self.get_FPA_steps(gait_data_df, FPA_all[:, 0], l_steps)
+            r_FPA_steps = self.get_FPA_steps(gait_data_df, FPA_all[:, 1], r_steps)
+            self.insert_param_data(param_data_df, l_FPA_steps, 'l_FPA_steps')
+            self.insert_param_data(param_data_df, r_FPA_steps, 'r_FPA_steps')
 
         return param_data_df
 
@@ -179,7 +183,7 @@ class ParamProcessor:
                     r_offs[i_sample] = 1
         return l_strikes, r_strikes, l_offs, r_offs
 
-    def check_strikes_offs(self, force_norm, strikes, offs):
+    def check_strikes_offs(self, force_norm, strikes, offs, title=''):
         strike_indexes = np.where(strikes == 1)[0]
         off_indexes = np.where(offs == 1)[0]
         data_len = min(strike_indexes.shape[0], off_indexes.shape[0])
@@ -209,6 +213,7 @@ class ParamProcessor:
             plt.grid()
             plt.plot(strike_indexes, force_norm[strike_indexes], 'g*')
             plt.plot(off_indexes, force_norm[off_indexes], 'gx')
+            plt.title(title)
 
     def get_trunk_angles(self, gait_data_df):
         C7 = gait_data_df[['C7_x', 'C7_y', 'C7_z']].values
@@ -309,16 +314,15 @@ class ParamProcessor:
     def get_FPA_all(self, gait_data_df):
         l_toe = gait_data_df[['LFM2_x', 'LFM2_y', 'LFM2_z']].values
         l_heel = gait_data_df[['LFCC_x', 'LFCC_y', 'LFCC_z']].values
-        data_len = l_toe.shape[0]
 
         forward_vector = l_toe - l_heel
-        left_FPAs = - 180 / np.pi * np.arctan2(forward_vector[0], forward_vector[1])
+        left_FPAs = - 180 / np.pi * np.arctan2(forward_vector[:, 0], forward_vector[:, 1])
 
         r_toe = gait_data_df[['RFM2_x', 'RFM2_y', 'RFM2_z']].values
         r_heel = gait_data_df[['RFCC_x', 'RFCC_y', 'RFCC_z']].values
 
         forward_vector = r_toe - r_heel
-        right_FPAs = 180 / np.pi * np.arctan2(forward_vector[0], forward_vector[1])
+        right_FPAs = 180 / np.pi * np.arctan2(forward_vector[:, 0], forward_vector[:, 1])
 
         return np.column_stack([left_FPAs, right_FPAs])
 
@@ -341,7 +345,7 @@ class ParamProcessor:
         :param gait_data_df:
         :return:
         """
-        stance_phase_sample_thd_lower = 0.5 * self._current_fre
+        stance_phase_sample_thd_lower = 0.3 * self._current_fre
         stance_phase_sample_thd_higher = 1 * self._current_fre
 
         strike_tuple = np.where(strikes == 1)[0]

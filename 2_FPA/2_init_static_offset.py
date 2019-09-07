@@ -24,9 +24,11 @@ def initialize_static_offset(subject_id, side):
     yaw_xsens = - np.mean(yaw_xsens_raw) - 180
     yaw_diff_degree = yaw_xsens - yaw_marker
 
-    # # get xsens via gravity and mag
-    # euler_angles = get_angles_via_gra_mag(data_static, 'l_foot')
-    # yaw_diff_degree = np.mean(euler_angles[:, 2]) + 180
+    # get xsens via gravity and mag
+    print(SUB_NAMES[i_sub], end='\t\t\t\t')
+
+    euler_angles = get_angles_via_gra_mag(data_static, 'l_foot')
+    yaw_diff_degree = np.mean(euler_angles[:, 2]) + 180
 
     return yaw_xsens, yaw_marker, yaw_diff_degree
 
@@ -40,9 +42,8 @@ for i_sub in range(19):
     else:
         angle_bias.append(0)
 
-    print(SUB_NAMES[i_sub], end='\t\t\t\t')
-    print([yaw_xsens, yaw_marker, yaw_diff_degree])
+    # print(SUB_NAMES[i_sub], end='\t\t\t\t')
+    # print([yaw_xsens, yaw_marker, yaw_diff_degree])
 
-x = 1
 
 

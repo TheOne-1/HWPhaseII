@@ -4,11 +4,8 @@ from ProcessorTrunk import ProcessorTrunk
 
 # define the output parameter here
 output_parameter_name = 'trunk_ml_angle'        # trunk_ap_angle or trunk_ml_angle
-# define train set subject and trials here
 train = {}      # train dict is empty because you want to use a white box method
-# define test set subject and trials here
-# test = {'190810LiuSensen': TRUNK_TRIALS, '190815WangHan': TRUNK_TRIALS}
-test = {'190810LiuSensen': [TRIAL_NAMES[2]]}
+test = {'190820FuZhinan': TRUNK_TRIALS}
 
 trunk_processor = ProcessorTrunk(train, test, 200, 'l', output_parameter_name, 'trunk', data_type=0,
                                  do_input_norm=False, do_output_norm=False)

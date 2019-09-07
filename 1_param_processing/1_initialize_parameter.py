@@ -1,7 +1,7 @@
 from const import PROCESSED_DATA_PATH, RAW_DATA_PATH, SUB_NAMES, SUB_AND_WALKING_TRIALS
 from ParameterProcessor import ParamProcessor, TrunkStaticProcessor
 
-for subject_folder in SUB_NAMES[5:10]:
+for subject_folder in SUB_NAMES[12:]:
     readme_xls = RAW_DATA_PATH + subject_folder + '\\readme\\readme_' + subject_folder + '.xlsx'
 
     init100 = False

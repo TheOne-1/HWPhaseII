@@ -5,16 +5,20 @@ TRIAL_NAMES = ['static', 'static trunk', 'baseline 10', 'FPA 10', 'trunk 10', 'b
                'baseline 14', 'FPA 14', 'trunk 14']
 
 SUB_AND_TRIALS = {'190803LiJiayi': TRIAL_NAMES, '190806SunDongxiao': TRIAL_NAMES, '190806WangDianxin': TRIAL_NAMES,
-                  '190810LiuSensen': TRIAL_NAMES, '190815WangHan': TRIAL_NAMES, '190815QiuYue': TRIAL_NAMES,
+                  '190810LiuSensen': TRIAL_NAMES, '190813Caolinfeng': TRIAL_NAMES, '190813ZengJia': TRIAL_NAMES,
+                  '190815WangHan': TRIAL_NAMES, '190815QiuYue': TRIAL_NAMES, '190824ZhangYaqian': TRIAL_NAMES,
                   '190816YangCan': TRIAL_NAMES, '190820FuZhenzhen': TRIAL_NAMES, '190820FuZhinan': TRIAL_NAMES,
-                  '190822HeMing': TRIAL_NAMES, '190826MouRongzi': TRIAL_NAMES, '190828LiangJie': TRIAL_NAMES,
+                  '190822HeMing': TRIAL_NAMES[:3] + TRIAL_NAMES[4:],
+                  '190826MouRongzi': TRIAL_NAMES, '190828LiangJie': TRIAL_NAMES,
                   '190829JiBin': TRIAL_NAMES, '190829ZhaoJiamin': TRIAL_NAMES, '190831XieJie': TRIAL_NAMES,
-                  '190824ZhangYaqian': TRIAL_NAMES, '190831GongChangyang': TRIAL_NAMES, '190813ZengJia': TRIAL_NAMES,
-                  '190813Caolinfeng': TRIAL_NAMES}
+                  '190831GongChangyang': TRIAL_NAMES}
+
+FOOT_SENSOR_BROKEN_SUBS = ('190826MouRongzi', '190828LiangJie', '190829JiBin', '190829ZhaoJiamin', '190831XieJie',
+                           '190831GongChangyang')
 
 SUB_NAMES = tuple(SUB_AND_TRIALS.keys())
 
-SUB_AND_PARAM_TRIALS = copy.deepcopy(SUB_AND_TRIALS)        # trials for parameter calculation
+SUB_AND_PARAM_TRIALS = copy.deepcopy(SUB_AND_TRIALS)  # trials for parameter calculation
 for key in SUB_AND_PARAM_TRIALS.keys():
     if 'static' in SUB_AND_PARAM_TRIALS[key]:
         SUB_AND_PARAM_TRIALS[key].remove('static')
@@ -91,8 +95,8 @@ _14_TRIALS = ('baseline 14', 'FPA 14')
 
 ROTATION_VIA_STATIC_CALIBRATION = False
 
-TRIAL_START_BUFFER = 3       # 3 seconds filter buffer
-FILTER_WIN_LEN = 100        # The length of FIR filter window
+TRIAL_START_BUFFER = 3  # 3 seconds filter buffer
+FILTER_WIN_LEN = 100  # The length of FIR filter window
 
 FONT_SIZE = 18
 FONT_DICT = {'fontsize': FONT_SIZE, 'fontname': 'DejaVu Sans'}
@@ -108,4 +112,3 @@ COLUMN_FOR_HUAWEI = ['marker_frame', 'f_1_x', 'f_1_y', 'f_1_z', 'c_1_x', 'c_1_y'
 COLUMN_FOR_HUAWEI_1000 = ['marker_frame', 'f_1_x', 'f_1_y', 'f_1_z', 'c_1_x', 'c_1_y', 'c_1_z']
 
 SPECIFIC_CALI_MATRIX = {}
-

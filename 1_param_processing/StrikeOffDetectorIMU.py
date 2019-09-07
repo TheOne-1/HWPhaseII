@@ -215,7 +215,7 @@ class StrikeOffDetectorIMUFilter(StrikeOffDetectorIMU):
             raise IndexError('Gyr peak not found')
 
         # find strikes and offs (with filter delays)
-        check_win_len = int(1.6 * self._sampling_fre)           # find strike off within this range
+        check_win_len = int(1.5 * self._sampling_fre)           # find strike off within this range
         for i_sample in range(trial_start_buffer_sample_num + 1, data_len):
             if i_sample - last_off > check_win_len:
                 try:
@@ -234,7 +234,7 @@ class StrikeOffDetectorIMUFilter(StrikeOffDetectorIMU):
                         plt.plot(gyr_x_filtered[last_off:i_sample])
                         plt.grid()
                         plt.show()
-                    last_off = last_off + int(self._sampling_fre * 1.2)     # skip this step
+                    last_off = last_off + int(self._sampling_fre * 0.4)     # skip this step
         return strike_list, off_list
 
     def show_IMU_data_and_strike_off(self, estimated_strike_indexes, estimated_off_indexes):

@@ -187,6 +187,8 @@ def get_angles_via_gra_mag(data_df, IMU_location):
     axis_name_gravity = [IMU_location + '_acc_' + axis for axis in ['x', 'y', 'z']]
     data_gravity = data_df[axis_name_gravity].values
 
+    print(np.mean(data_gravity, axis=0))
+
     axis_name_mag = [IMU_location + '_mag_' + axis for axis in ['x', 'y', 'z']]
     data_mag = data_df[axis_name_mag].values
 
