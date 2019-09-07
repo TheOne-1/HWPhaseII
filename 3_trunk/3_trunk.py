@@ -8,11 +8,13 @@ output_parameter_name = 'trunk_ap_angle'        # trunk_ap_angle or trunk_ml_ang
 train = {}      # train dict is empty because you want to use a white box method
 # define test set subject and trials here
 test = {'190803LiJiayi': TRUNK_TRIALS, '190806SunDongxiao': TRUNK_TRIALS, '190806WangDianxin': TRUNK_TRIALS,
-            '190810LiuSensen': TRUNK_TRIALS, '190815WangHan': TRUNK_TRIALS}
-#test = {'190810LiuSensen': TRUNK_TRIALS}
+           '190810LiuSensen': TRUNK_TRIALS, '190815WangHan': TRUNK_TRIALS, '190815QiuYue': TRUNK_TRIALS,
+           '190816YangCan': TRUNK_TRIALS, '190820FuZhenzhen': TRUNK_TRIALS}
+
+test = {'190826MouRongzi': TRUNK_TRIALS}
 
 trunk_processor = ProcessorTrunk(train, test, 200, 'l', output_parameter_name, 'trunk', data_type=0,
-                                 do_input_norm=False, do_output_norm=False)
+                                 do_input_norm=False, do_output_norm=False, show_plots=False)
 #trunk_processor.draw_subtrial_output_error_bar(trial_id=4)
 
 for subject in test:
