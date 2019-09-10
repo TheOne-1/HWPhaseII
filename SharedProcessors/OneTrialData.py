@@ -2,7 +2,6 @@ from const import PROCESSED_DATA_PATH, MOCAP_SAMPLE_RATE, ROTATION_VIA_STATIC_CA
     SPECIFIC_CALI_MATRIX, TRIAL_START_BUFFER, FILTER_WIN_LEN, SUB_NAMES, TRIAL_NAMES
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import xlrd
 
 
