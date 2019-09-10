@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import xlrd
 import scipy as ipy
-import matplotlib as matp
+import matplotlib as lib
 
 
 class OneTrialData:
