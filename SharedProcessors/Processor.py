@@ -7,7 +7,7 @@ from sklearn.preprocessing import MinMaxScaler
 
 class Processor:
     def __init__(self, train_sub_and_trials, test_sub_and_trials, sensor_sampling_fre, grf_side, param_name,
-                 IMU_location, data_type, do_input_norm=True, do_output_norm=False):
+                 IMU_location, data_type, do_input_norm=True, do_output_norm=False, show_plots=False):
         """
 
         :param data_type: int
@@ -22,6 +22,8 @@ class Processor:
         self.do_output_norm = do_output_norm
         self.param_name = param_name
         self.IMU_location = IMU_location
+        self.show_plots = show_plots
+        self.cal_angle = 0
         self.train_obj = DataReader(train_sub_and_trials, param_name, sensor_sampling_fre, grf_side, IMU_location)
         if test_sub_and_trials is not None:
             self.test_obj = DataReader(test_sub_and_trials, param_name, sensor_sampling_fre, grf_side, IMU_location)
