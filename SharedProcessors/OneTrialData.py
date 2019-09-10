@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import xlrd
 from scipy import matmul
+from matplotlib import pyplot as plt
 
 
 class OneTrialData:
