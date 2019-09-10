@@ -15,6 +15,11 @@ class ProcessorTrunk(Processor):
             return None, None
 
         # see the id_df
+        nan_locs = np.argwhere(np.isnan(outputs.ravel()))
+        if len(nan_locs > 0):
+            nan_trial_ids = id_df['trial_id'].values[nan_locs]
+            nan_sub_ids = id_df['subject_id'].values[nan_locs]
+            t = np.column_stack([nan_sub_ids, nan_trial_ids])
 
         # convert data into features
         feature_0 = - np.arctan2(inputs[:, 2], np.linalg.norm(inputs[:, 0:3], axis=1)) / np.pi * 180

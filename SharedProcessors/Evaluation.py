@@ -95,8 +95,8 @@ class Evaluation:
         plt.plot([0, 50], [0, 50], 'r--')
         RMSE_str = str(RMSE[0])
         mean_error_str = str(mean_error)
-        pearson_coeff = str(pearsonr(y_true, y_pred))[1:6]
-        plt.title(title + '\np_correlation: ' + pearson_coeff + '   RMSE: '
+        pearson_coeff = pearsonr(y_true, y_pred)[0]
+        plt.title(title + '\np_correlation: ' + str(pearson_coeff)[:6] + '   RMSE: '
                   + RMSE_str + '  Mean error: ' + mean_error_str)
         plt.xlabel('true value')
         plt.ylabel('predicted value')
@@ -169,6 +169,8 @@ class Evaluation:
     @staticmethod
     def export_prediction_result(predict_result_df):
         predict_result_df.columns = ['subject_name', 'correlation', 'RMSE', 'mean_error']
+        predict_result_df.loc[-1] = ['absolute mean', np.mean(predict_result_df['correlation']),
+                                     np.mean(predict_result_df['RMSE']), np.mean(abs(predict_result_df['mean_error']))]
         file_path = 'result_conclusion/predict_result_conclusion.csv'
         i_file = 0
         while os.path.isfile(file_path):

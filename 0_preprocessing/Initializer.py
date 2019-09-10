@@ -56,7 +56,7 @@ class SubjectDataInitializer:
 
         # initialzed 1000 Hz GRFz data, all the data was saved
         if initialize_1000Hz:
-            for trial_name in TRIAL_NAMES:
+            for trial_name in trials:
                 print('Initializing {trial_name} trial, z-axis of GRF, 1000 Hz...'.format(trial_name=trial_name))
                 file_path_vicon = '{path}{sub_folder}\\{sensor}\\{file_name}.csv'.format(
                     path=RAW_DATA_PATH, sub_folder=self._subject_folder, sensor='vicon', file_name=trial_name)
