@@ -3,7 +3,6 @@ from const import PROCESSED_DATA_PATH, MOCAP_SAMPLE_RATE, ROTATION_VIA_STATIC_CA
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from StrikeOffDetectorIMU import StrikeOffDetectorIMUFilter
 import xlrd
 
 
