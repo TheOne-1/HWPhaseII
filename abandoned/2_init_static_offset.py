@@ -42,7 +42,6 @@ for i_sub in range(19):
     else:
         angle_bias.append(0)
 
-x=1
 # print(SUB_NAMES[i_sub], end='\t\t\t\t')
 # print([yaw_xsens, yaw_marker, yaw_diff_degree])
 

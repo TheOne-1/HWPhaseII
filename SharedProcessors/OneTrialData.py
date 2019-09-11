@@ -3,8 +3,6 @@ from const import PROCESSED_DATA_PATH, MOCAP_SAMPLE_RATE, ROTATION_VIA_STATIC_CA
 import numpy as np
 import pandas as pd
 import xlrd
-import scipy as ipy
-import matplotlib as lib
 
 
 class OneTrialData:

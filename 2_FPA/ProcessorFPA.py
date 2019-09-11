@@ -67,7 +67,7 @@ class ProcessorFPA(Processor):
             # find the best filter cut-off frequency
             predict_result_df = pd.DataFrame()
             for stance_end in np.arange(30, 51, 2):
-                steps, stance_phase_flag = self.initalize_steps_and_stance_phase(input_data, stance_end)
+                steps, stance_phase_flag = self.initalize_steps_and_stance_phase(input_data)
                 euler_angles_esti = self.get_kalman_filtered_euler_angles(
                     input_data, id_df['trial_id'].values, stance_phase_flag, base_correction_coeff=0.065, cut_off_fre=12)
                 acc_IMU_rotated = self.get_rotated_acc(input_data, euler_angles_esti, acc_cut_off_fre=4)
@@ -141,7 +141,8 @@ class ProcessorFPA(Processor):
                 the_FPA_esti = np.arctan2(max_acc_x, max_acc_y) * 180 / np.pi
                 # the_FPA_esti = the_FPA_esti + angle_bias        # add the bias
                 if use_empirical:
-                    the_FPA_esti = the_FPA_esti * 0.938 - 1.92        # the empirical function
+                    the_FPA_esti = the_FPA_esti
+                # the_FPA_esti = the_FPA_esti * 0.938 - 1.92  # the empirical function
                 FPA_estis.append(the_FPA_esti)
         return np.array(FPA_estis), np.array(FPA_trues)
 
@@ -155,7 +156,10 @@ class ProcessorFPA(Processor):
         gyr_IMU = StrikeOffDetectorIMUFilter.data_filt(gyr_IMU, cut_off_fre, MOCAP_SAMPLE_RATE)
         data_len = input_data.shape[0]
 
-        angle_augments = gyr_IMU * delta_t
+        gyr_IMU_moved = np.zeros(gyr_IMU.shape)
+        gyr_IMU_moved[:-1, :] = gyr_IMU[1:, :]
+        angle_augments = (gyr_IMU + gyr_IMU_moved) / 2 * delta_t
+        # angle_augments = gyr_IMU * delta_t
         euler_angles_esti = np.zeros([data_len, 3])
         acc_IMU_norm = norm(acc_IMU, axis=1)
         roll_correction = np.arctan2(acc_IMU[:, 1], acc_IMU_norm)          # axis 0
