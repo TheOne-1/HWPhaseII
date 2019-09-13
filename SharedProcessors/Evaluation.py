@@ -6,7 +6,6 @@ from scipy.stats import pearsonr
 from keras import optimizers
 from keras.callbacks import EarlyStopping
 from const import COLORS
-from keras import backend as K
 import pandas as pd
 import os
 

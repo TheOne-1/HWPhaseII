@@ -107,7 +107,7 @@ class ProcessorFPA(Processor):
         return steps, stance_phase_flag
 
     @staticmethod
-    def get_rotated_acc(input_data, euler_angles, acc_cut_off_fre=4):
+    def get_rotated_acc(input_data, euler_angles, acc_cut_off_fre=2):
         acc_IMU = input_data[:, 0:3]
         acc_IMU = StrikeOffDetectorIMUFilter.data_filt(acc_IMU, acc_cut_off_fre, MOCAP_SAMPLE_RATE)
         acc_IMU_rotated = np.zeros(acc_IMU.shape)
@@ -119,35 +119,41 @@ class ProcessorFPA(Processor):
         return acc_IMU_rotated
 
     def get_FPA_via_max_acc_ratio(self, acc_IMU_rotated, steps, output_data, angle_bias=0, use_empirical=True):
+
         filter_delay = int(FILTER_WIN_LEN / 2)
         win_before_off = int(0.08 * self.sensor_sampling_fre)
         win_after_off = int(0.12 * self.sensor_sampling_fre)
         FPA_estis, FPA_trues = [], []
         for step in steps:
-            the_FPA_true = np.max(output_data[step[0] - filter_delay:step[1] - filter_delay])
+            # get true FPA values
+            output_clip = output_data[step[0] - filter_delay:step[1] - filter_delay]
+            output_clip = output_clip[output_clip != 0]
+            if len(output_clip) != 1:
+                print('multiple true FPA found, step skipped')
+                continue
+            the_FPA_true = output_clip[0]
             if the_FPA_true:
                 FPA_trues.append(the_FPA_true)
 
-                max_acc_x = np.max(acc_IMU_rotated[step[1]-win_before_off:step[1]+win_after_off, 0])
-                max_acc_y = np.max(acc_IMU_rotated[step[1]-win_before_off:step[1]+win_after_off, 1])
+                acc_x_clip = acc_IMU_rotated[step[1]-win_before_off:step[1]+win_after_off, 0]
+                acc_y_clip = acc_IMU_rotated[step[1]-win_before_off:step[1]+win_after_off, 1]
+                max_acc_x = np.max(acc_x_clip)
+                max_acc_y = np.max(acc_y_clip)
 
-                # max_acc_x_index = np.argmax(acc_IMU_rotated[step[1]-win_before_off:step[1]+win_after_off, 0])
-                # max_acc_x_start = step[1]-win_before_off+max_acc_x_index
-                # max_acc_x = np.mean(acc_IMU_rotated[max_acc_x_start-2:max_acc_x_start+3, 0])
-                # max_acc_y_index = np.argmax(acc_IMU_rotated[step[1]-win_before_off:step[1]+win_after_off, 1])
-                # max_acc_y_start = step[1]-win_before_off+max_acc_y_index
-                # max_acc_y = np.mean(acc_IMU_rotated[max_acc_y_start-2:max_acc_y_start+3, 1])
-
+                # replace max_acc_x via
+                if the_FPA_true < 1:
+                    max_acc_y_arg = np.argmax(acc_y_clip)
+                    max_acc_x = acc_x_clip[max_acc_y_arg - 5]
                 the_FPA_esti = np.arctan2(max_acc_x, max_acc_y) * 180 / np.pi
-                # the_FPA_esti = the_FPA_esti + angle_bias        # add the bias
                 if use_empirical:
                     the_FPA_esti = the_FPA_esti
-                # the_FPA_esti = the_FPA_esti * 0.938 - 1.92  # the empirical function
+                    # the_FPA_esti = the_FPA_esti * 0.938 - 1.92  # the empirical function
+
                 FPA_estis.append(the_FPA_esti)
         return np.array(FPA_estis), np.array(FPA_trues)
 
     def get_kalman_filtered_euler_angles(self, input_data, trial_ids, stance_phase_flag, base_correction_coeff=0.065,
-                                         cut_off_fre=12):
+                                         cut_off_fre=6):
         delta_t = 1 / MOCAP_SAMPLE_RATE
 
         acc_IMU = input_data[:, 0:3]

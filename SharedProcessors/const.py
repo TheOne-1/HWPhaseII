@@ -81,18 +81,6 @@ _10_TRIALS = ('baseline 10', 'FPA 10')
 _12_TRIALS = ('baseline 12', 'FPA 12')
 _14_TRIALS = ('baseline 14', 'FPA 14')
 
-# # The orientation of left foot xsens sensor was wrong
-# XSENS_ROTATION_CORRECTION_NIKE = {
-#     '190511ZhuJiayi': {'l_foot': [[-1, 0, 0],
-#                                   [0, -1, 0],
-#                                   [0, 0, 1]]}}
-
-# # magnetic field interference occurred in Wang Dianxin's data, so YuHongzhe's data were used instead
-# SPECIFIC_CALI_MATRIX = {
-#     '190414WangDianxin': {'r_foot': [[0.92751222, 0.34553155, -0.14257993],
-#                                      [-0.37081009, 0.80245287, -0.46751393],
-#                                      [-0.04712714, 0.48649496, 0.87241142]]}}
-
 ROTATION_VIA_STATIC_CALIBRATION = False
 
 TRIAL_START_BUFFER = 3  # 3 seconds filter buffer
@@ -104,11 +92,17 @@ FONT_DICT_SMALL = {'fontsize': 16, 'fontname': 'DejaVu Sans'}
 LINE_WIDTH = 2
 
 COLUMN_FOR_HUAWEI = ['marker_frame', 'f_1_x', 'f_1_y', 'f_1_z', 'c_1_x', 'c_1_y', 'c_1_z',
+                     'C7_x', 'C7_y', 'C7_z', 'LIPS_x', 'LIPS_y', 'LIPS_z', 'RIPS_x', 'RIPS_y', 'RIPS_z',
                      'LFCC_x', 'LFCC_y', 'LFCC_z', 'LFM5_x', 'LFM5_y', 'LFM5_z', 'LFM2_x', 'LFM2_y', 'LFM2_z',
                      'RFCC_x', 'RFCC_y', 'RFCC_z', 'RFM5_x', 'RFM5_y', 'RFM5_z', 'RFM2_x', 'RFM2_y', 'RFM2_z',
+                     'trunk_acc_x', 'trunk_acc_y', 'trunk_acc_z', 'trunk_gyr_x', 'trunk_gyr_y', 'trunk_gyr_z',
+                     'trunk_mag_x', 'trunk_mag_y', 'trunk_mag_z',
                      'l_foot_acc_x', 'l_foot_acc_y', 'l_foot_acc_z', 'l_foot_gyr_x', 'l_foot_gyr_y', 'l_foot_gyr_z',
                      'l_foot_mag_x', 'l_foot_mag_y', 'l_foot_mag_z']
 
 COLUMN_FOR_HUAWEI_1000 = ['marker_frame', 'f_1_x', 'f_1_y', 'f_1_z', 'c_1_x', 'c_1_y', 'c_1_z']
 
 SPECIFIC_CALI_MATRIX = {}
+
+TRUNK_SUBTRIAL_NAMES = ('normal trunk', 'large sway', 'backward inclination',
+                        'backward TI large TS', 'forward inclination', 'forward TI large TS')

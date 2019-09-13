@@ -108,7 +108,7 @@ class StrikeOffDetectorIMU:
 
         acc_data = self.get_IMU_data(acc=True, gyr=False).values
         acc_z = -acc_data[:, 2]
-        acc_z = self.data_filt(acc_z, 10, self._sampling_fre)
+        acc_z = self.data_filt(acc_z, 5, self._sampling_fre)
         plt.figure()
         plt.title(self._trial_name + '   ' + self._IMU_location + '   acc_z')
         plt.plot(acc_z)
@@ -122,7 +122,7 @@ class StrikeOffDetectorIMU:
 
         gyr_data = self.get_IMU_data(acc=False, gyr=True).values
         gyr_x = -gyr_data[:, 0]
-        gyr_x = self.data_filt(gyr_x, 10, self._sampling_fre)
+        gyr_x = self.data_filt(gyr_x, 5, self._sampling_fre)
         plt.figure()
         plt.title(self._trial_name + '   ' + self._IMU_location + '   gyr_x')
         plt.plot(gyr_x)
@@ -142,7 +142,7 @@ class StrikeOffDetectorIMUFilter(StrikeOffDetectorIMU):
 
     @staticmethod
     def data_filt(data, cut_off_fre, sampling_fre, filter_order=4):
-        wn = cut_off_fre / sampling_fre
+        wn = cut_off_fre / (sampling_fre / 2)
         b = firwin(FILTER_WIN_LEN, wn)
         if len(data.shape) == 1:
             data_filt = lfilter(b, 1, data)
@@ -182,7 +182,7 @@ class StrikeOffDetectorIMUFilter(StrikeOffDetectorIMU):
         max_index = np.argmax(peak_heights)
         return peaks[max_index]
 
-    def get_walking_strike_off(self, strike_delay, off_delay, cut_off_fre_strike_off=10):
+    def get_walking_strike_off(self, strike_delay, off_delay, cut_off_fre_strike_off=5):
         strike_acc_width = 10 * (self._sampling_fre / 100)
         strike_acc_prominence = 3.5
         strike_acc_height = -5
@@ -251,7 +251,7 @@ class StrikeOffDetectorIMUFilter(StrikeOffDetectorIMU):
 
         acc_data = self.get_IMU_data(acc=True, gyr=False).values
         acc_z = -acc_data[:, 2]
-        acc_z = self.data_filt(acc_z, 10, self._sampling_fre)
+        acc_z = self.data_filt(acc_z, 5, self._sampling_fre)
         plt.figure()
         plt.title(self._trial_name + '   ' + self._IMU_location + '   acc_z')
         plt.plot(acc_z)
@@ -265,7 +265,7 @@ class StrikeOffDetectorIMUFilter(StrikeOffDetectorIMU):
 
         gyr_data = self.get_IMU_data(acc=False, gyr=True).values
         gyr_x = -gyr_data[:, 0]
-        gyr_x = self.data_filt(gyr_x, 10, self._sampling_fre)
+        gyr_x = self.data_filt(gyr_x, 5, self._sampling_fre)
         plt.figure()
         plt.title(self._trial_name + '   ' + self._IMU_location + '   gyr_x')
         plt.plot(gyr_x)
