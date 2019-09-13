@@ -114,6 +114,9 @@ class ProcessorFPA(Processor):
         data_len = acc_IMU.shape[0]
         euler_angles = euler_angles
         for i_sample in range(data_len):
+            if i_sample == 796:     #!!!
+                x = 1
+
             dcm_mat = euler2mat(euler_angles[i_sample, 0], euler_angles[i_sample, 1], 0)
             acc_IMU_rotated[i_sample, :] = np.matmul(dcm_mat, acc_IMU[i_sample, :].T)
         return acc_IMU_rotated
