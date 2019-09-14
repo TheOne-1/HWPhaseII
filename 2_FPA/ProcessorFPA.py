@@ -143,7 +143,6 @@ class ProcessorFPA(Processor):
                 max_acc_x = np.max(acc_x_clip)
                 max_acc_y = np.max(acc_y_clip)
 
-                # replace max_acc_x via
                 if the_FPA_true < 1:
                     max_acc_y_arg = np.argmax(acc_y_clip)
                     max_acc_x = acc_x_clip[max_acc_y_arg - 5]
@@ -179,6 +178,11 @@ class ProcessorFPA(Processor):
             if trial_ids[i_sample] != trial_ids[i_sample-1]:
                 dynamic_correction_coeff = 0.9
             euler_angles_esti[i_sample, :] = euler_angles_esti[i_sample - 1, :] + angle_augments[i_sample, :]
+
+            #!!!
+            if i_sample == 369:
+                x = 1
+
 
             if stance_phase_flag[i_sample]:
                 if dynamic_correction_coeff > 1e-3:
