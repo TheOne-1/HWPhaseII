@@ -13,27 +13,35 @@ def write_text_file(path, text):
         print(text, file=text_file)
 
 
-def save_filter_param(cut_off_fre, param_name, strike_delay, off_delay):
-    sampling_fre = 200
-    filter_win_len = 100
-    param_file = 'filter_param_files/filter_param_' + param_name + '.json'
-    wn = cut_off_fre / (sampling_fre/2)
-    b = signal.firwin(filter_win_len, wn)
-    a = 1
+# def save_filter_param(cut_off_fre, param_name, strike_delay, off_delay):
+off_delay = 10
+strike_delay = 10
+param_name = 'FPA'
+sampling_fre = 200
+filter_win_len = 100
+param_file = 'filter_param_files/filter_param_' + param_name + '.json'
 
-    filter_delay = int(FILTER_WIN_LEN / 2)
+a = 1
 
-    filter_param = {'wn': wn, 'b': b.tolist(), 'a': a, 'filter_win_len': filter_win_len,
-                    'filter_delay': filter_delay, 'strike_delay': strike_delay, 'off_delay': off_delay,
-                    'start_buffer': TRIAL_START_BUFFER}
-    with open(param_file, 'w') as param_file:
-        print(json.dumps(filter_param, sort_keys=True, indent=4, separators=(',', ': ')), file=param_file)
+wn_gyr_integration = 6 / (sampling_fre/2)
+b_gyr_integration = signal.firwin(filter_win_len, wn_gyr_integration)
+
+wn_strike_off = 5 / (sampling_fre/2)
+b_strike_off = signal.firwin(filter_win_len, wn_strike_off)
+
+wn_acc_ratio = 2 / (sampling_fre/2)
+b_acc_ratio = signal.firwin(filter_win_len, wn_acc_ratio)
+
+filter_delay = int(FILTER_WIN_LEN / 2)
+
+filter_param = {'b_gyr_integration': b_gyr_integration.tolist(), 'b_strike_off': b_strike_off.tolist(),
+                'b_acc_ratio': b_acc_ratio.tolist(), 'a': a, 'filter_win_len': filter_win_len,
+                'filter_delay': filter_delay, 'strike_delay': strike_delay, 'off_delay': off_delay,
+                'start_buffer': TRIAL_START_BUFFER}
+with open(param_file, 'w') as param_file:
+    print(json.dumps(filter_param, sort_keys=True, indent=4, separators=(',', ': ')), file=param_file)
 
 
-save_filter_param(5, 'lr_si', 8, 6)
-save_filter_param(5, 'FPA_strike_off', 10, 10)
-save_filter_param(6, 'FPA_gyr_integration', 0, 0)
-save_filter_param(2, 'FPA_acc_peak', 0, 0)
 
 
 

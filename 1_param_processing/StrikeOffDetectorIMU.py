@@ -219,7 +219,7 @@ class StrikeOffDetectorIMUFilter(StrikeOffDetectorIMU):
         for i_sample in range(trial_start_buffer_sample_num + 1, data_len):
             if i_sample - last_off > check_win_len:
                 try:
-                    acc_peak = self.find_peak_max(acc_z_filtered[last_off:i_sample-int(check_win_len/5)],
+                    acc_peak = self.find_peak_max(acc_z_filtered[last_off:i_sample-int(check_win_len/4)],
                                                   width=strike_acc_width,
                                                   prominence=strike_acc_prominence, height=strike_acc_height)
                     gyr_peak = self.find_peak_max(gyr_x_filtered[last_off:i_sample],
@@ -230,10 +230,10 @@ class StrikeOffDetectorIMUFilter(StrikeOffDetectorIMU):
                 except ValueError as e:
                     if not np.isnan(gyr_x_filtered[i_sample]):
                         plt.figure()
-                        plt.plot(acc_z_filtered[last_off:i_sample-int(check_win_len/5)])
+                        plt.plot(acc_z_filtered[last_off:i_sample-int(check_win_len/4)])
                         plt.plot(gyr_x_filtered[last_off:i_sample])
                         plt.grid()
-                        plt.show()
+                        # plt.show()
                     last_off = last_off + int(self._sampling_fre * 0.4)     # skip this step
         return strike_list, off_list
 
@@ -244,7 +244,7 @@ class StrikeOffDetectorIMUFilter(StrikeOffDetectorIMU):
         """
         side = self._IMU_location[0]
         true_strikes = self._param_data_df[side + '_strikes']
-        filter_delay =int(FILTER_WIN_LEN / 2)
+        filter_delay = int(FILTER_WIN_LEN / 2)
         true_strike_indexes = np.where(true_strikes == 1)[0][:-1] + filter_delay     # Add the filter delay
         true_offs = self._param_data_df[side + '_offs']
         true_off_indexes = np.where(true_offs == 1)[0][:-1] + filter_delay     # Add the filter delay

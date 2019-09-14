@@ -18,12 +18,7 @@ class ProcessorFPA(Processor):
 
         # 0 for normal prediction, 1 for best empirical equation parameter via linear regression,
         # 2 for best cut-off frequency
-        self.get_best_param = 0
-
-        self.angle_bias = [5.6288632361159046, 11.452744870987829, 10.68706348139574, 10.994062733806373,
-                           8.358435315266064, 11.69003309005015, 12.636716007510103, 10.650004666349162,
-                           8.827560704018282, 12.832568360830777, 15.543915822029902, 9.262269550019823,
-                           9.823769726131474, 0, 0, 0, 0, 0, 0]
+        self.get_best_param = 1
 
     def convert_input_output(self, input_data, output_data, id_df, sampling_fre):
         if input_data is None:
@@ -44,8 +39,7 @@ class ProcessorFPA(Processor):
                 euler_angles_esti = self.get_kalman_filtered_euler_angles(input_data_sub, id_df['trial_id'].values,
                                                                           stance_phase_flag)
                 acc_IMU_rotated = self.get_rotated_acc(input_data_sub, euler_angles_esti)
-                angle_bias = self.angle_bias[sub_id]
-                FPA_estis, FPA_trues = self.get_FPA_via_max_acc_ratio(acc_IMU_rotated, steps, output_data_sub, angle_bias)
+                FPA_estis, FPA_trues = self.get_FPA_via_max_acc_ratio(acc_IMU_rotated, steps, output_data_sub)
 
                 pearson_coeff, RMSE, mean_error = Evaluation.plot_nn_result(FPA_trues, FPA_estis, title=SUB_NAMES[sub_id])
                 predict_result_df = Evaluation.insert_prediction_result(
@@ -58,7 +52,7 @@ class ProcessorFPA(Processor):
             euler_angles_esti = self.get_kalman_filtered_euler_angles(input_data, id_df['trial_id'].values,
                                                                       stance_phase_flag)
             acc_IMU_rotated = self.get_rotated_acc(input_data, euler_angles_esti)
-            FPA_estis, FPA_trues = self.get_FPA_via_max_acc_ratio(acc_IMU_rotated, steps, output_data, 0, False)
+            FPA_estis, FPA_trues = self.get_FPA_via_max_acc_ratio(acc_IMU_rotated, steps, output_data, False)
             model = LinearRegression()
             model.fit(FPA_estis.reshape(-1, 1), FPA_trues)
             print('a = ' + str(model.coef_[0]) + '   b = ' + str(model.intercept_))
@@ -71,7 +65,7 @@ class ProcessorFPA(Processor):
                 euler_angles_esti = self.get_kalman_filtered_euler_angles(
                     input_data, id_df['trial_id'].values, stance_phase_flag, base_correction_coeff=0.065, cut_off_fre=12)
                 acc_IMU_rotated = self.get_rotated_acc(input_data, euler_angles_esti, acc_cut_off_fre=4)
-                FPA_estis, FPA_trues = self.get_FPA_via_max_acc_ratio(acc_IMU_rotated, steps, output_data, 0)
+                FPA_estis, FPA_trues = self.get_FPA_via_max_acc_ratio(acc_IMU_rotated, steps, output_data)
                 pearson_coeff, RMSE, mean_error = Evaluation.plot_nn_result(FPA_trues, FPA_estis, title='All')
                 predict_result_df = Evaluation.insert_prediction_result(
                     predict_result_df, stance_end, pearson_coeff, RMSE, mean_error)
@@ -114,14 +108,11 @@ class ProcessorFPA(Processor):
         data_len = acc_IMU.shape[0]
         euler_angles = euler_angles
         for i_sample in range(data_len):
-            if i_sample == 796:     #!!!
-                x = 1
-
             dcm_mat = euler2mat(euler_angles[i_sample, 0], euler_angles[i_sample, 1], 0)
             acc_IMU_rotated[i_sample, :] = np.matmul(dcm_mat, acc_IMU[i_sample, :].T)
         return acc_IMU_rotated
 
-    def get_FPA_via_max_acc_ratio(self, acc_IMU_rotated, steps, output_data, angle_bias=0, use_empirical=True):
+    def get_FPA_via_max_acc_ratio(self, acc_IMU_rotated, steps, output_data, use_empirical=True):
 
         filter_delay = int(FILTER_WIN_LEN / 2)
         win_before_off = int(0.08 * self.sensor_sampling_fre)
@@ -148,8 +139,7 @@ class ProcessorFPA(Processor):
                     max_acc_x = acc_x_clip[max_acc_y_arg - 5]
                 the_FPA_esti = np.arctan2(max_acc_x, max_acc_y) * 180 / np.pi
                 if use_empirical:
-                    the_FPA_esti = the_FPA_esti
-                    # the_FPA_esti = the_FPA_esti * 0.938 - 1.92  # the empirical function
+                    the_FPA_esti = the_FPA_esti - 4.477  # the empirical function
 
                 FPA_estis.append(the_FPA_esti)
         return np.array(FPA_estis), np.array(FPA_trues)
@@ -178,12 +168,6 @@ class ProcessorFPA(Processor):
             if trial_ids[i_sample] != trial_ids[i_sample-1]:
                 dynamic_correction_coeff = 0.9
             euler_angles_esti[i_sample, :] = euler_angles_esti[i_sample - 1, :] + angle_augments[i_sample, :]
-
-            #!!!
-            if i_sample == 369:
-                x = 1
-
-
             if stance_phase_flag[i_sample]:
                 if dynamic_correction_coeff > 1e-3:
                     correction_coeff = dynamic_correction_coeff + base_correction_coeff
