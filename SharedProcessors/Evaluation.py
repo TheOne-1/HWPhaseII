@@ -5,7 +5,7 @@ from numpy import sqrt
 from scipy.stats import pearsonr
 from keras import optimizers
 from keras.callbacks import EarlyStopping
-from const import COLORS
+from const import COLORS, FONT_DICT_SMALL, LINE_WIDTH
 import pandas as pd
 import os
 
@@ -81,7 +81,7 @@ class Evaluation:
         return y_pred
 
     @staticmethod
-    def plot_nn_result(y_true, y_pred, title=''):
+    def plot_fpa_result(y_true, y_pred, sub_id):
         # change the shape of data so that no error will be raised during pearsonr analysis
         if y_true.shape != 1:
             y_true = y_true.ravel()
@@ -89,17 +89,37 @@ class Evaluation:
             y_pred = y_pred.ravel()
 
         R2, RMSE, mean_error = Evaluation._get_all_scores(y_true, y_pred, precision=3)
-        plt.figure()
+        plt.figure(figsize=(9, 6))
+        Evaluation.format_plot()
+        Evaluation.format_fpa_axis()
         plt.plot(y_true, y_pred, 'b.')
-        plt.plot([0, 50], [0, 50], 'r--')
-        RMSE_str = str(RMSE[0])
-        mean_error_str = str(mean_error)
+        mean_error_str = str(mean_error)[:5]
         pearson_coeff = pearsonr(y_true, y_pred)[0]
-        plt.title(title + '\np_correlation: ' + str(pearson_coeff)[:6] + '   RMSE: '
-                  + RMSE_str + '  Mean error: ' + mean_error_str)
-        plt.xlabel('true value')
-        plt.ylabel('predicted value')
+        plt.title('Mean error: ' + mean_error_str + ' degree', fontdict=FONT_DICT_SMALL)
+        plt.savefig('../2_FPA/fpa_figures/FPA_subject_' + str(sub_id) + '.png')
         return pearson_coeff, RMSE, mean_error
+
+    @staticmethod
+    def format_plot():
+        ax = plt.gca()
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.xaxis.set_tick_params(width=LINE_WIDTH)
+        ax.yaxis.set_tick_params(width=LINE_WIDTH)
+        ax.spines['left'].set_linewidth(LINE_WIDTH)
+        ax.spines['bottom'].set_linewidth(LINE_WIDTH)
+
+    @staticmethod
+    def format_fpa_axis():
+        ax = plt.gca()
+        ax.set_xlim(-15, 55)
+        ax.set_xticks(range(-10, 51, 15))
+        ax.set_xticklabels(range(-10, 51, 15), fontdict=FONT_DICT_SMALL)
+        ax.set_ylim(-15, 55)
+        ax.set_yticks(range(-10, 51, 15))
+        ax.set_yticklabels(range(-10, 51, 15), fontdict=FONT_DICT_SMALL)
+        plt.xlabel('true value (degree)', fontdict=FONT_DICT_SMALL)
+        plt.ylabel('predicted value (degree)', fontdict=FONT_DICT_SMALL)
 
     @staticmethod
     def plot_nn_result_cate_color(y_true, y_pred, category_id, category_names, title=''):

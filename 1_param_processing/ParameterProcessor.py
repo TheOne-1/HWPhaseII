@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from numpy.core.umath_tests import inner1d
 import matplotlib.pyplot as plt
-from const import TRIAL_NAMES, PLATE_SAMPLE_RATE, MOCAP_SAMPLE_RATE, HAISHENG_SENSOR_SAMPLE_RATE,\
+from const import TRIAL_NAMES, PLATE_SAMPLE_RATE, MOCAP_SAMPLE_RATE, HAISHENG_SENSOR_SAMPLE_RATE, \
     FOOT_SENSOR_BROKEN_SUBS
 import xlrd
 from numpy.linalg import norm
@@ -42,7 +42,7 @@ class ParamProcessor:
                 gait_data_100_df = pd.read_csv(fre_100_path + trial_name + '.csv', index_col=False)
                 trial_param_df_100 = self.init_trial_params(gait_data_100_df, HAISHENG_SENSOR_SAMPLE_RATE)
                 self.__save_data(fre_100_path, trial_name, trial_param_df_100)
-            plt.show()
+            # plt.show()
 
         if self.__initialize_200Hz:
             self.static_data_df = pd.read_csv(fre_200_path + TRIAL_NAMES[0] + '.csv', index_col=False)
@@ -55,7 +55,7 @@ class ParamProcessor:
                 gait_data_200_df = pd.read_csv(fre_200_path + trial_name + '.csv', index_col=False)
                 trial_param_df_200 = self.init_trial_params(gait_data_200_df, MOCAP_SAMPLE_RATE)
                 self.__save_data(fre_200_path, trial_name, trial_param_df_200)
-            plt.show()
+            # plt.show()
 
     @staticmethod
     def resample_steps(steps_1000, sample_fre):
@@ -81,10 +81,10 @@ class ParamProcessor:
         FPA_all = self.get_FPA_all(gait_data_df)  # FPA of all the samples
         trunk_ml_angle, trunk_ap_angle = self.get_trunk_angles(gait_data_df)
         # self.check_trunk_angles(trunk_ml_angle, trunk_ap_angle)
-        param_data = np.column_stack([l_strikes, r_strikes, l_offs, r_offs, FPA_all, trunk_ml_angle, trunk_ap_angle])
+        param_data = np.column_stack([trunk_ap_angle, trunk_ml_angle, l_strikes, r_strikes, l_offs, r_offs, FPA_all])
         param_data_df = pd.DataFrame(param_data)
-        param_data_df.columns = ['l_strikes', 'r_strikes', 'l_offs', 'r_offs', 'l_FPA', 'r_FPA',
-                                 'trunk_ml_angle', 'trunk_ap_angle']
+        param_data_df.columns = ['trunk_ap_angle', 'trunk_ml_angle', 'l_strikes', 'r_strikes', 'l_offs', 'r_offs',
+                                 'l_FPA', 'r_FPA']
         param_data_df.insert(0, 'marker_frame', gait_data_df['marker_frame'])
 
         if self._sub_name not in FOOT_SENSOR_BROKEN_SUBS:
