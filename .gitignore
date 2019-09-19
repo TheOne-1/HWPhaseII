@@ -4,3 +4,4 @@ configuration.txt
 *.csv
 */__pycache__
 .idea
+*.png
