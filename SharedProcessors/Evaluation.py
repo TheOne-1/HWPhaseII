@@ -112,12 +112,12 @@ class Evaluation:
     @staticmethod
     def format_fpa_axis():
         ax = plt.gca()
-        ax.set_xlim(-15, 55)
-        ax.set_xticks(range(-10, 51, 15))
-        ax.set_xticklabels(range(-10, 51, 15), fontdict=FONT_DICT_SMALL)
-        ax.set_ylim(-15, 55)
-        ax.set_yticks(range(-10, 51, 15))
-        ax.set_yticklabels(range(-10, 51, 15), fontdict=FONT_DICT_SMALL)
+        ax.set_xlim(-20, 65)
+        ax.set_xticks(range(-15, 65, 15))
+        ax.set_xticklabels(range(-15, 65, 15), fontdict=FONT_DICT_SMALL)
+        ax.set_ylim(-20, 65)
+        ax.set_yticks(range(-15, 65, 15))
+        ax.set_yticklabels(range(-15, 65, 15), fontdict=FONT_DICT_SMALL)
         plt.xlabel('true value (degree)', fontdict=FONT_DICT_SMALL)
         plt.ylabel('predicted value (degree)', fontdict=FONT_DICT_SMALL)
 

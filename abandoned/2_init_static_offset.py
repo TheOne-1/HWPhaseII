@@ -1,7 +1,32 @@
 from const import SUB_NAMES, PROCESSED_DATA_PATH
 import numpy as np
 import pandas as pd
-from ProcessorTest import get_angles_via_gra_mag
+from transforms3d.euler import mat2euler
+
+
+def get_angles_via_gra_mag(data_df, IMU_location):
+    axis_name_gravity = [IMU_location + '_acc_' + axis for axis in ['x', 'y', 'z']]
+    data_gravity = data_df[axis_name_gravity].values
+
+    print(np.mean(data_gravity, axis=0))
+
+    axis_name_mag = [IMU_location + '_mag_' + axis for axis in ['x', 'y', 'z']]
+    data_mag = data_df[axis_name_mag].values
+
+    fun_norm_vect = lambda v: v / np.linalg.norm(v)
+    vector_2 = np.apply_along_axis(fun_norm_vect, 1, data_gravity)
+
+    vector_0 = np.array(list(map(np.cross, data_mag, data_gravity)))
+    vector_0 = np.apply_along_axis(fun_norm_vect, 1, vector_0)
+
+    vector_1 = np.array(list(map(np.cross, vector_2, vector_0)))
+    vector_1 = np.apply_along_axis(fun_norm_vect, 1, vector_1)
+
+    dcm_mat = np.array([vector_0, vector_1, vector_2])
+    dcm_mat = np.swapaxes(dcm_mat, 0, 1)
+    euler_angles = np.array(list(map(mat2euler, dcm_mat))) / np.pi * 180
+
+    return euler_angles
 
 
 def initialize_static_offset(subject_id, side):

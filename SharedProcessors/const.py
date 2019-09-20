@@ -89,6 +89,7 @@ FILTER_WIN_LEN = 100  # The length of FIR filter window
 FONT_SIZE = 18
 FONT_DICT = {'fontsize': FONT_SIZE, 'fontname': 'DejaVu Sans'}
 FONT_DICT_SMALL = {'fontsize': 16, 'fontname': 'DejaVu Sans'}
+FONT_DICT_X_SMALL = {'fontsize': 14, 'fontname': 'DejaVu Sans'}
 LINE_WIDTH = 2
 
 COLUMN_FOR_HUAWEI = ['marker_frame', 'f_1_x', 'f_1_y', 'f_1_z', 'c_1_x', 'c_1_y', 'c_1_z',

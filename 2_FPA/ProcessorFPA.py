@@ -18,7 +18,7 @@ class ProcessorFPA(Processor):
 
         # 0 for normal prediction, 1 for best empirical equation parameter via linear regression,
         # 2 for best cut-off frequency
-        self.experiment_id = 0
+        self.experiment_id = 3
 
     def convert_input_output(self, input_data, output_data, id_df, sampling_fre):
         if input_data is None:
@@ -83,9 +83,9 @@ class ProcessorFPA(Processor):
             detailed_result_df.to_csv('detailed_result_df.csv', index=False)
         return None, None
 
-
     @staticmethod
     def get_detailed_result_df(id_df, FPA_estis, FPA_trues, steps_used):
+        id_df = id_df.astype(int)
         data_len = len(FPA_estis)
         id_df_row_index = []
         for i_step in range(data_len):
@@ -164,7 +164,7 @@ class ProcessorFPA(Processor):
                     max_acc_x = acc_x_clip[max_acc_y_arg - 5]
                 the_FPA_esti = np.arctan2(max_acc_x, max_acc_y) * 180 / np.pi
                 if use_empirical:
-                    the_FPA_esti = the_FPA_esti - 4.477  # the empirical function
+                    the_FPA_esti = the_FPA_esti - 4  # the empirical function
 
                 FPA_estis.append(the_FPA_esti)
         return np.array(FPA_estis), np.array(FPA_trues), steps_used
