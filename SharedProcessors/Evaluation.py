@@ -111,6 +111,7 @@ class Evaluation:
 
     @staticmethod
     def format_fpa_axis():
+        plt.plot([-15, 55], [-15, 55], 'r-')
         ax = plt.gca()
         ax.set_xlim(-20, 65)
         ax.set_xticks(range(-15, 65, 15))

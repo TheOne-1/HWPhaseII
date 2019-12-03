@@ -18,7 +18,7 @@ class ProcessorFPA(Processor):
 
         # 0 for normal prediction, 1 for best empirical equation parameter via linear regression,
         # 2 for best cut-off frequency
-        self.experiment_id = 3
+        self.experiment_id = 0
 
     def convert_input_output(self, input_data, output_data, id_df, sampling_fre):
         if input_data is None:
