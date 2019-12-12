@@ -36,7 +36,8 @@ class DataReader:
         return all_data_struct
 
     def prepare_data_by_with_strike_off(self):
-        all_data_struct = DataStructSample(input_dim=8)
+        # input contains acc, gyr, strikes, offs, and euler angles
+        all_data_struct = DataStructSample(input_dim=11)
         for subject_name in self._sub_names:
             print('loading data of: ' + subject_name)
             readme_xls = RAW_DATA_PATH + subject_name + '\\readme\\readme_' + subject_name + '.xlsx'

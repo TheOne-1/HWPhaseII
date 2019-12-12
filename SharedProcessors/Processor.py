@@ -3,6 +3,7 @@ from DataReader import DataReader
 from keras.layers import *
 import scipy.interpolate as interpo
 from sklearn.preprocessing import MinMaxScaler
+import numpy as np
 
 
 class Processor:
@@ -51,10 +52,10 @@ class Processor:
             The ids of the target subtrials.
         :return: input_array, output_array, _
         """
-        inputs, outputs, train_id_df = self.train_data.get_all_data(subject_ids, trial_ids, subtrial_ids)
-        self._x_train, self._y_train = self.convert_input_output(inputs, outputs, train_id_df, self.sensor_sampling_fre)
-        inputs, outputs, test_id_df = self.test_data.get_all_data(subject_ids, trial_ids, subtrial_ids)
-        self._x_test, self._y_test = self.convert_input_output(inputs, outputs, test_id_df, self.sensor_sampling_fre)
+        inputs, outputs, train_supp_df = self.train_data.get_all_data(subject_ids, trial_ids, subtrial_ids)
+        self._x_train, self._y_train = self.convert_input_output(inputs, outputs, train_supp_df, self.sensor_sampling_fre)
+        inputs, outputs, test_supp_df = self.test_data.get_all_data(subject_ids, trial_ids, subtrial_ids)
+        self._x_test, self._y_test = self.convert_input_output(inputs, outputs, test_supp_df, self.sensor_sampling_fre)
         # do input normalization
         if self.do_input_norm:
             self.norm_input()
@@ -62,7 +63,7 @@ class Processor:
             self.norm_output()
 
     # convert the input from list to ndarray
-    def convert_input_output(self, inputs, outputs, id_df, sampling_fre):
+    def convert_input_output(self, inputs, outputs, supp_df, sampling_fre):
         # this method has to be overwritten
         raise NotImplementedError('this convert_step_input method has to be overwritten')
 

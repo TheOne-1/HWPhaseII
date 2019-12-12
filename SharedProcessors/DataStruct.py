@@ -22,16 +22,14 @@ class DataStructSample(DataStruct):
         self.__output_dim = output_dim
         self.__sample_num = 0
 
-        self.__col_input = ['input_' + str(num) for num in range(input_dim)]
+        self.__col_input = ['acc_x', 'acc_y', 'acc_z', 'gyr_x', 'gyr_y', 'gyr_z', 'strikes', 'offs']
+        self.__col_euler_angles = ['l_foot_roll', 'l_foot_pitch', 'l_foot_yaw']
         self.__col_output = ['output_' + str(num) for num in range(output_dim)]
         self.__col_param = ['subject_id', 'trial_id', 'subtrial_id']
-        self.__col_all = self.__col_input + self.__col_output + self.__col_param
+        self.__col_all = self.__col_input + self.__col_euler_angles + self.__col_output + self.__col_param
 
         self.__data_dim = len(self.__col_all)
-
         self.__data_df = pd.DataFrame(columns=self.__col_all)
-        # self.__mask_array = np.zeros([0, 1])    # used to mask bad samples, which is more efficient then delete
-        # self.__input_array, self.__output_array = np.zeros([0, input_dim]), np.zeros(0, output_dim)
 
     def append(self, input_array, output_array, subject_id, trial_id, subtrial_array):
         if len(list({input_array.shape[0], output_array.shape[0], subtrial_array.shape[0]})) != 1:
@@ -77,8 +75,8 @@ class DataStructSample(DataStruct):
             data_df = data_df[data_df['subtrial_id'].isin(subtrial_ids)]
         input_array = data_df[self.__col_input].values
         output_array = data_df[self.__col_output].values
-        id_df = data_df[['subject_id', 'trial_id', 'subtrial_id']]
-        return input_array, output_array, id_df
+        supp_df = data_df[['subject_id', 'trial_id', 'subtrial_id', 'l_foot_roll', 'l_foot_pitch', 'l_foot_yaw']]
+        return input_array, output_array, supp_df
 
 
 class DataStructStep(DataStruct):

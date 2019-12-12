@@ -95,7 +95,8 @@ class Evaluation:
         plt.plot(y_true, y_pred, 'b.')
         mean_error_str = str(mean_error)[:5]
         pearson_coeff = pearsonr(y_true, y_pred)[0]
-        plt.title('Mean error: ' + mean_error_str + ' degree', fontdict=FONT_DICT_SMALL)
+        plt.title('Mean error: ' + mean_error_str + ' °   Correlation: ' + str(pearson_coeff)[:5],
+                  fontdict=FONT_DICT_SMALL)
         plt.savefig('../2_FPA/fpa_figures/FPA_subject_' + str(sub_id) + '.png')
         return pearson_coeff, RMSE, mean_error
 

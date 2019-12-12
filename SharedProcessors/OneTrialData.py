@@ -24,11 +24,11 @@ class OneTrialData:
         self.gait_data_df = pd.read_csv(gait_data_path, index_col=False)
         # initialize the dataframe of gait parameters, including loading rate, strike index, ...
         gait_param_path = PROCESSED_DATA_PATH + '\\' + subject_name + data_folder + 'param_of_' + trial_name + '.csv'
-        buffer_sample_num = self._sensor_sampling_fre * TRIAL_START_BUFFER
-        self.gait_data_df = self.gait_data_df.loc[buffer_sample_num:, :]        # skip the first several hundred data
+        # buffer_sample_num = self._sensor_sampling_fre * TRIAL_START_BUFFER
+        # self.gait_data_df = self.gait_data_df.loc[buffer_sample_num:, :]        # skip the first several hundred data
         if static_data_df is not None:
             self.gait_param_df = pd.read_csv(gait_param_path, index_col=False)
-            self.gait_param_df = self.gait_param_df.loc[buffer_sample_num:, :]
+            # self.gait_param_df = self.gait_param_df.loc[buffer_sample_num:, :]
 
         self.__init_subtrial_ends(readme_xls)
 
@@ -120,8 +120,9 @@ class OneTrialData:
             param_data = self.gait_param_df[param_name].values
 
         IMU_data = self.get_one_IMU_data(IMU_location, acc, gyr, mag)
-        strike_off_data = self.gait_param_df[['strikes_IMU_lfilter', 'offs_IMU_lfilter']]
-        input_data = np.column_stack([IMU_data, strike_off_data])
+        strike_off_data = self.gait_param_df[['l_strikes', 'l_offs']]
+        euler_angle_data = self.gait_data_df[['l_foot_roll', 'l_foot_pitch', 'l_foot_yaw']]
+        input_data = np.column_stack([IMU_data, strike_off_data, euler_angle_data])
         subtrial_array = np.zeros([IMU_data.shape[0]])
         if self.__subtrial_ends is not None:
             subtrial_ends_sorted = self.__subtrial_ends[:]
