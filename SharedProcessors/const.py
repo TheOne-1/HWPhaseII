@@ -109,3 +109,5 @@ TRUNK_SUBTRIAL_NAMES = ('normal trunk', 'large sway', 'backward inclination',
                         'backward TI large TS', 'forward inclination', 'forward TI large TS')
 
 accuracy_path = 'D:/Tian/Research/Projects/HuaweiProject/codes/190807DataProcessPhaseII/2_FPA/'
+
+FPA_NAME_LIST = ['fpa_vicon', 'fpa_tbme_no_cali', 'fpa_acc_ratio']

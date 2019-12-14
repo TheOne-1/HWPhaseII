@@ -3,12 +3,13 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from Evaluation import Evaluation
-from const import FILTER_WIN_LEN, MOCAP_SAMPLE_RATE, SUB_NAMES, TRIAL_NAMES
+from const import MOCAP_SAMPLE_RATE, SUB_NAMES, TRIAL_NAMES
 from StrikeOffDetectorIMU import StrikeOffDetectorIMU
 from numpy.linalg import norm
 from numpy import sin, cos
 from transforms3d.euler import euler2mat
 from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
 
 
 class ProcessorFPA(Processor):
@@ -26,7 +27,7 @@ class ProcessorFPA(Processor):
             return None, None
 
         if self.experiment_id == 4:
-            # brand new functions for publication
+            """brand new functions for publication"""
             sub_id_list = np.sort(list(set(supp_df['subject_id'].values))).astype('int')
             trial_id_list = np.sort(list(set(supp_df['trial_id'].values))).astype('int')
             for sub_id in sub_id_list:
@@ -36,77 +37,57 @@ class ProcessorFPA(Processor):
                     input_data_sub = input_data[data_index]
                     output_data_sub = output_data[data_index]
                     steps, stance_phase_flag = self.initalize_steps_and_stance_phase(input_data_sub)
-                    euler_angles_true = supp_df[['l_foot_roll', 'l_foot_pitch', 'l_foot_yaw']].values
-
-                    # euler_angles_esti = self.get_complementary_filtered_euler_angles_new(input_data_sub,
+                    # euler_angles_esti = self.get_euler_angles_gradient_decent(input_data_sub,
                     #                                                           stance_phase_flag)
-                    # euler_angles_esti = self.get_complementary_filtered_euler_angles(input_data, supp_df['trial_id'].values,
-                    #                                                           stance_phase_flag)
-                    euler_angles_esti = self.get_euler_angles_gradient_decent(input_data_sub,
-                                                                              stance_phase_flag)
+                    euler_angles_esti = self.get_complementary_filtered_euler_angles(input_data_sub,
+                                                                supp_df['trial_id'].values, stance_phase_flag)
 
-                    euler_angles_esti[:, 0] = euler_angles_esti[:, 0]
-                    euler_angles_true = np.deg2rad(euler_angles_true)
-                    plt.figure()
-                    plt.plot(euler_angles_esti[:, 0])
-                    plt.plot(euler_angles_true[:, 0])
-                    plt.figure()
-                    plt.plot(euler_angles_esti[:, 1])
-                    plt.plot(euler_angles_true[:, 1])
-
-                    acc_IMU_rotated = self.get_rotated_acc(input_data_sub, euler_angles_esti)
-                    FPA_estis, FPA_trues, _ = self.get_FPA_via_max_acc_ratio(acc_IMU_rotated, steps, output_data_sub)
-                    pearson_coeff, RMSE, mean_error = Evaluation.plot_fpa_result(FPA_trues, FPA_estis, sub_id)
-                    plt.show()
+                    acc_IMU_rotated = self.get_rotated_acc(input_data_sub, euler_angles_esti, acc_cut_off_fre=2)
+                    FPA_estis = self.get_FPA_via_max_acc_ratio_new(acc_IMU_rotated, steps)
+                    self.compare_result(FPA_estis, output_data_sub, steps)
                     # ProcessorFPA.save_trial_result(sub_id, trial_id, FPA_estis, steps)
 
+        elif self.experiment_id == 2:
+            """find the best parameters"""
+            predict_result_df = pd.DataFrame()
+            for win_after_off in np.arange(0, 4, 4):
+                steps, stance_phase_flag = self.initalize_steps_and_stance_phase(input_data)
+                euler_angles_esti = self.get_euler_angles_gradient_decent(input_data, stance_phase_flag)
+                acc_IMU_rotated = self.get_rotated_acc(input_data, euler_angles_esti, acc_cut_off_fre=20)
+                FPA_estis = self.get_FPA_via_speed_ratio(acc_IMU_rotated, steps, win_after_off=win_after_off)
+                FPA_trues, FPA_estis = self.compare_result(FPA_estis, output_data, steps)
+                pearson_coeff, RMSE, mean_error = Evaluation._get_all_scores(np.array(FPA_trues), np.array(FPA_estis), precision=3)
+                RMSE = [np.sqrt(mean_squared_error(np.array(FPA_trues), np.array(FPA_estis)+mean_error))]         # !!! unbiased RMSE were recorded
+                predict_result_df = Evaluation.insert_prediction_result(
+                    predict_result_df, win_after_off, pearson_coeff, RMSE, mean_error)
+            Evaluation.export_prediction_result(predict_result_df)
 
         elif self.experiment_id == 0:
-            sub_ids = supp_df['subject_id'].values
-            sub_id_list = list(set(sub_ids))
-            predict_result_df = pd.DataFrame()
-
+            """old functions for huawei project were used."""
+            sub_id_list = np.sort(list(set(supp_df['subject_id'].values))).astype('int')
+            trial_id_list = np.sort(list(set(supp_df['trial_id'].values))).astype('int')
             for sub_id in sub_id_list:
                 sub_id = int(sub_id)
-                data_index = supp_df['subject_id'] == sub_id
-                input_data_sub = input_data[data_index]
-                output_data_sub = output_data[data_index]
-                steps, stance_phase_flag = self.initalize_steps_and_stance_phase(input_data_sub)
-                # convert input
-                euler_angles_esti = self.get_complementary_filtered_euler_angles(input_data_sub, supp_df['trial_id'].values,
-                                                                                 stance_phase_flag)
-                acc_IMU_rotated = self.get_rotated_acc(input_data_sub, euler_angles_esti)
-                FPA_estis, FPA_trues, _ = self.get_FPA_via_max_acc_ratio(acc_IMU_rotated, steps, output_data_sub)
-
-                pearson_coeff, RMSE, mean_error = Evaluation.plot_fpa_result(FPA_trues, FPA_estis, sub_id)
-                predict_result_df = Evaluation.insert_prediction_result(
-                    predict_result_df, SUB_NAMES[sub_id], pearson_coeff, RMSE, mean_error)
-            Evaluation.export_prediction_result(predict_result_df)
+                for trial_id in trial_id_list:
+                    data_index = (supp_df['subject_id'] == sub_id) & (supp_df['trial_id'] == trial_id)
+                    input_data_sub = input_data[data_index]
+                    steps, stance_phase_flag = self.initalize_steps_and_stance_phase(input_data_sub)
+                    euler_angles_esti = self.get_complementary_filtered_euler_angles(input_data_sub,
+                                                                supp_df['trial_id'].values, stance_phase_flag)
+                    acc_IMU_rotated = self.get_rotated_acc(input_data_sub, euler_angles_esti, acc_cut_off_fre=2)
+                    FPA_estis = self.get_FPA_via_max_acc_ratio_new(acc_IMU_rotated, steps)
+                    ProcessorFPA.save_trial_result(sub_id, trial_id, FPA_estis, steps)
 
         elif self.experiment_id == 1:
             # Use linear regression to get the best empirical equation parameter
             steps, stance_phase_flag = self.initalize_steps_and_stance_phase(input_data)
             euler_angles_esti = self.get_complementary_filtered_euler_angles(input_data, supp_df['trial_id'].values,
                                                                              stance_phase_flag)
-            acc_IMU_rotated = self.get_rotated_acc(input_data, euler_angles_esti)
+            acc_IMU_rotated = self.get_rotated_acc(input_data, euler_angles_esti, acc_cut_off_fre=2)
             FPA_estis, FPA_trues, _ = self.get_FPA_via_max_acc_ratio(acc_IMU_rotated, steps, output_data, False)
             model = LinearRegression()
             model.fit(FPA_estis.reshape(-1, 1), FPA_trues)
             print('a = ' + str(model.coef_[0]) + '   b = ' + str(model.intercept_))
-
-        elif self.experiment_id == 2:
-            # find the best filter cut-off frequency
-            predict_result_df = pd.DataFrame()
-            for stance_end in np.arange(30, 51, 2):
-                steps, stance_phase_flag = self.initalize_steps_and_stance_phase(input_data)
-                euler_angles_esti = self.get_complementary_filtered_euler_angles(
-                    input_data, supp_df['trial_id'].values, stance_phase_flag, base_correction_coeff=0.065, cut_off_fre=12)
-                acc_IMU_rotated = self.get_rotated_acc(input_data, euler_angles_esti, acc_cut_off_fre=4)
-                FPA_estis, FPA_trues, _ = self.get_FPA_via_max_acc_ratio(acc_IMU_rotated, steps, output_data)
-                pearson_coeff, RMSE, mean_error = Evaluation.plot_fpa_result(FPA_trues, FPA_estis, -1)
-                predict_result_df = Evaluation.insert_prediction_result(
-                    predict_result_df, stance_end, pearson_coeff, RMSE, mean_error)
-            Evaluation.export_prediction_result(predict_result_df)
 
         elif self.experiment_id == 3:
             # record the estimation result of each step
@@ -114,7 +95,7 @@ class ProcessorFPA(Processor):
             # convert input
             euler_angles_esti = self.get_complementary_filtered_euler_angles(input_data, supp_df['trial_id'].values,
                                                                              stance_phase_flag)
-            acc_IMU_rotated = self.get_rotated_acc(input_data, euler_angles_esti)
+            acc_IMU_rotated = self.get_rotated_acc(input_data, euler_angles_esti, acc_cut_off_fre=2)
             FPA_estis, FPA_trues, steps_used = self.get_FPA_via_max_acc_ratio(acc_IMU_rotated, steps, output_data)
             detailed_result_df = self.get_detailed_result_df(supp_df, FPA_estis, FPA_trues, steps_used)
             detailed_result_df.to_csv('detailed_result_df.csv', index=False)
@@ -147,11 +128,8 @@ class ProcessorFPA(Processor):
         detailed_result_df = detailed_result_df.reset_index(drop=True)
         return detailed_result_df
 
-    def white_box_solution(self):
-        # the algorithm
-        pass
-
-    def initalize_steps_and_stance_phase(self, input_data):
+    def initalize_steps_and_stance_phase(self, input_data, stance_after_strike=31, stance_before_off=40):
+        # stance_after_strike = 6, stance_before_off = 22
         stance_phase_sample_thd_lower = 0.3 * self.sensor_sampling_fre
         stance_phase_sample_thd_higher = 1 * self.sensor_sampling_fre
         # get stance phase
@@ -170,16 +148,17 @@ class ProcessorFPA(Processor):
             if len(off) == 1:      # stance phase detected
                 off = off[0]
                 steps.append([int(strike), int(off)])
-                stance_phase_flag[strike + 11:off - 20] = True
+                stance_phase_flag[strike + stance_after_strike:off - stance_before_off] = True
             else:
                 abandoned_step_num += 1
         print('{num} steps abandoned'.format(num=abandoned_step_num))
         return steps, stance_phase_flag
 
     @staticmethod
-    def get_rotated_acc(input_data, euler_angles, acc_cut_off_fre=2):
+    def get_rotated_acc(input_data, euler_angles, acc_cut_off_fre=None):
         acc_IMU = input_data[:, 0:3]
-        acc_IMU = StrikeOffDetectorIMU.data_filt(acc_IMU, acc_cut_off_fre, MOCAP_SAMPLE_RATE)
+        if acc_cut_off_fre is not None:
+            acc_IMU = StrikeOffDetectorIMU.data_filt(acc_IMU, acc_cut_off_fre, MOCAP_SAMPLE_RATE)
         acc_IMU_rotated = np.zeros(acc_IMU.shape)
         data_len = acc_IMU.shape[0]
         for i_sample in range(data_len):
@@ -256,7 +235,7 @@ class ProcessorFPA(Processor):
                     (pitch_correction[i_sample] - euler_angles_esti[i_sample, 1])
         return euler_angles_esti
 
-    def get_FPA_via_max_acc_ratio_new(self, acc_IMU_rotated, steps, output_data, use_empirical=True):
+    def get_FPA_via_max_acc_ratio_new(self, acc_IMU_rotated, steps):
         win_before_off = int(0.08 * self.sensor_sampling_fre)
         win_after_off = int(0.12 * self.sensor_sampling_fre)
         data_len = acc_IMU_rotated.shape[0]
@@ -264,13 +243,54 @@ class ProcessorFPA(Processor):
         for step in steps:
             acc_x_clip = acc_IMU_rotated[step[1]-win_before_off:step[1]+win_after_off, 0]
             acc_y_clip = acc_IMU_rotated[step[1]-win_before_off:step[1]+win_after_off, 1]
-            max_acc_y, max_acc_y_index = np.max(acc_y_clip), np.argmax(acc_y_clip)
-            max_acc_x = acc_x_clip[max_acc_y_index]
+            max_acc_x = np.max(acc_x_clip)
+            max_acc_y = np.max(acc_y_clip)
+            if max_acc_x < 1:
+                max_acc_y_arg = np.argmax(acc_y_clip)
+                max_acc_x = acc_x_clip[max_acc_y_arg - 5]
 
             the_FPA_esti = np.arctan2(max_acc_x, max_acc_y) * 180 / np.pi
             the_sample = int((step[0] + step[1]) / 2)
             FPA_estis[the_sample] = the_FPA_esti
-        return np.array(FPA_estis)
+        return FPA_estis
+
+    def get_FPA_via_speed_ratio(self, acc_IMU_rotated, steps, win_before_off=50, win_after_off=50):
+
+        # win_before_off = int(0.2 * self.sensor_sampling_fre)
+        # win_after_off = int(0.2 * self.sensor_sampling_fre)
+        data_len = acc_IMU_rotated.shape[0]
+        FPA_estis = np.zeros([data_len])
+        for step in steps:
+            acc_x_clip = acc_IMU_rotated[step[1]-win_before_off:step[1]+win_after_off, 0]
+            acc_y_clip = acc_IMU_rotated[step[1]-win_before_off:step[1]+win_after_off, 1]
+
+            peak_x_index = np.argmax(acc_x_clip)
+            first_negative_after_peak_x = np.argmax(acc_x_clip[peak_x_index:] < 0)
+            integration_end_x = peak_x_index + first_negative_after_peak_x
+            peak_y_index = np.argmax(acc_y_clip)
+            first_negative_after_peak_y = np.argmax(acc_y_clip[peak_y_index:] < 0)
+            integration_end_y = peak_y_index + first_negative_after_peak_y
+
+            speed_x = sum(acc_x_clip[:integration_end_y])
+            speed_y = sum(acc_y_clip[:integration_end_y])
+
+            the_FPA_esti = np.arctan2(speed_x, speed_y) * 180 / np.pi
+            the_sample = int((step[0] + step[1]) / 2)
+            FPA_estis[the_sample] = the_FPA_esti
+
+
+            if step[1] < 800:      #!!!
+                plt.figure()
+                plt.plot(acc_x_clip, 'b-')
+                plt.plot(acc_y_clip, 'r-')
+                plt.plot(integration_end_x, acc_x_clip[integration_end_x], 'bx')
+                plt.plot(integration_end_y, acc_y_clip[integration_end_y], 'rx')
+                plt.title('good')
+
+
+        return FPA_estis
+
+
 
     @staticmethod
     def get_complementary_filtered_euler_angles_new(input_data, stance_phase_flag, base_correction_coeff=0.065,
@@ -307,7 +327,7 @@ class ProcessorFPA(Processor):
         return euler_angles_esti
 
     @staticmethod
-    def get_euler_angles_gradient_decent(input_data, stance_phase_flag, base_correction_coeff=0.005,
+    def get_euler_angles_gradient_decent(input_data, stance_phase_flag, base_correction_coeff=0.002,
                                          cut_off_fre=6):
         delta_t = 1 / MOCAP_SAMPLE_RATE
 
@@ -325,7 +345,6 @@ class ProcessorFPA(Processor):
 
         init_start, euler_angles_esti = ProcessorFPA.find_first_stance(stance_phase_flag, input_data, euler_angles_esti)
         # initialize the following steps
-        gravity = 9.81
         for i_sample in range(init_start+1, data_len):
             euler_angles_esti[i_sample, :] = euler_angles_esti[i_sample - 1, :] + angle_augments[i_sample, :]
             if stance_phase_flag[i_sample]:
@@ -343,7 +362,12 @@ class ProcessorFPA(Processor):
                 delta_f = np.matmul(jacob.T, f)
                 delta_f_normed = delta_f / norm(delta_f)
 
-                max_step = np.sqrt((p + np.arcsin(acc_IMU_unified[0]))**2 + (r - np.arcsin(acc_IMU_unified[1]/cos(p)))**2)
+                modi_coeff_dim_0 = p + np.arcsin(acc_IMU_unified[0])
+                if abs(acc_IMU_unified[1]/cos(p)) < 1:
+                    modi_coeff_dim_1 = r - np.arcsin(acc_IMU_unified[1]/cos(p))
+                else:
+                    modi_coeff_dim_1 = r - np.arcsin(acc_IMU_unified[1])
+                max_step = np.sqrt(modi_coeff_dim_0**2 + modi_coeff_dim_1**2)
                 if max_step > base_correction_coeff:
                     correction_coeff = 0.005
                 else:
@@ -368,4 +392,18 @@ class ProcessorFPA(Processor):
         euler_angles_esti[init_start, 0] = np.arcsin(gravity_vector[1]/gravity_vector_norm)          # axis 0
         euler_angles_esti[init_start, 1] = - np.arcsin(gravity_vector[0]/gravity_vector_norm)        # axis 1
         return init_start, euler_angles_esti
+
+    @staticmethod
+    def compare_result(fpa_esti, fpa_true, steps):
+        fpa_true_list, fpa_esti_list = [], []
+        for step in steps:
+            esti_index = np.where(fpa_esti[step[0]:step[1]] != 0)[0]
+            true_index = np.where(fpa_true[step[0]:step[1]] != 0)[0]
+            if len(esti_index) == 1 and len(true_index) == 1:
+                fpa_esti_list.append(fpa_esti[esti_index[0] + step[0]])
+                fpa_true_list.append(fpa_true[true_index[0] + step[0], 0])
+        plt.figure()
+        plt.plot(fpa_true_list, fpa_esti_list, '.')
+        plt.plot([-20, 60], [-20, 60], 'black')
+        return fpa_true_list, fpa_esti_list
 

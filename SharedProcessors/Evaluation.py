@@ -5,7 +5,7 @@ from numpy import sqrt
 from scipy.stats import pearsonr
 from keras import optimizers
 from keras.callbacks import EarlyStopping
-from const import COLORS, FONT_DICT_SMALL, LINE_WIDTH
+from const import COLORS, FONT_DICT_SMALL, LINE_WIDTH, SUB_NAMES
 import pandas as pd
 import os
 
@@ -88,16 +88,15 @@ class Evaluation:
         if y_pred.shape != 1:
             y_pred = y_pred.ravel()
 
-        R2, RMSE, mean_error = Evaluation._get_all_scores(y_true, y_pred, precision=3)
+        pearson_coeff, RMSE, mean_error = Evaluation._get_all_scores(y_true, y_pred, precision=3)
         plt.figure(figsize=(9, 6))
         Evaluation.format_plot()
         Evaluation.format_fpa_axis()
         plt.plot(y_true, y_pred, 'b.')
         mean_error_str = str(mean_error)[:5]
-        pearson_coeff = pearsonr(y_true, y_pred)[0]
         plt.title('Mean error: ' + mean_error_str + ' °   Correlation: ' + str(pearson_coeff)[:5],
                   fontdict=FONT_DICT_SMALL)
-        plt.savefig('../2_FPA/fpa_figures/FPA_subject_' + str(sub_id) + '.png')
+        plt.savefig('../2_FPA/fpa_figures/' + SUB_NAMES[sub_id] + '.png')
         return pearson_coeff, RMSE, mean_error
 
     @staticmethod
@@ -192,9 +191,9 @@ class Evaluation:
         predict_result_df.columns = ['subject_name', 'correlation', 'RMSE', 'mean_error']
         predict_result_df.loc[-1] = ['absolute mean', np.mean(predict_result_df['correlation']),
                                      np.mean(predict_result_df['RMSE']), np.mean(abs(predict_result_df['mean_error']))]
-        file_path = 'result_conclusion/predict_result_conclusion.csv'
+        file_path = '../2_FPA/result_conclusion/predict_result_conclusion.csv'
         i_file = 0
         while os.path.isfile(file_path):
             i_file += 1
-            file_path = 'result_conclusion/predict_result_conclusion_' + str(i_file) + '.csv'
+            file_path = '../2_FPA/result_conclusion/predict_result_conclusion_' + str(i_file) + '.csv'
         predict_result_df.to_csv(file_path, index=False)

@@ -1,7 +1,8 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from const import LINE_WIDTH, FONT_DICT_SMALL, FONT_SIZE, FONT_DICT_X_SMALL
+from const import LINE_WIDTH, FONT_DICT_SMALL, FONT_SIZE, FPA_NAME_LIST, SUB_NAMES
+from Evaluation import Evaluation
 
 
 class PaperFigure:
@@ -17,10 +18,73 @@ class PaperFigure:
         ax.spines['left'].set_linewidth(LINE_WIDTH)
         ax.spines['bottom'].set_linewidth(LINE_WIDTH)
 
+    @staticmethod
+    def each_sub_fig(result_all_df):
+        sub_ids = list(set(result_all_df['subject_id'].values))
+        sub_ids.sort()
+        predict_result_df = pd.DataFrame()
+        for sub_id in sub_ids:
+            sub_result_df = result_all_df[result_all_df['subject_id'] == sub_id]
+            pearson_coeff, RMSE, mean_error = Evaluation.plot_fpa_result(
+                sub_result_df[FPA_NAME_LIST[0]], sub_result_df[FPA_NAME_LIST[2]], int(sub_id))
+            # plt.figure()
+            # plt.plot(sub_result_df[FPA_NAME_LIST[0]], sub_result_df[FPA_NAME_LIST[2]], 'g.')
+            # plt.plot([-20, 60], [-20, 60], 'black')
+            # plt.title(SUB_NAMES[int(sub_id)])
+            predict_result_df = Evaluation.insert_prediction_result(
+                predict_result_df, SUB_NAMES[int(sub_id)], pearson_coeff, RMSE, mean_error)
+        Evaluation.export_prediction_result(predict_result_df)
+
 
 class ErrorBarFigure(PaperFigure):
-    def __init__(self):
-        pass
+
+    @staticmethod
+    def show_each_pair(result_all_df):
+        plt.figure()
+        plt.plot(result_all_df[FPA_NAME_LIST[0]], result_all_df[FPA_NAME_LIST[1]], '.')
+        plt.plot([-20, 60], [-20, 60], 'r-')
+        plt.title(FPA_NAME_LIST[1])
+
+        plt.figure()
+        plt.plot(result_all_df[FPA_NAME_LIST[0]], result_all_df[FPA_NAME_LIST[2]], '.')
+        plt.plot([-20, 60], [-20, 60], 'r-')
+        plt.title(FPA_NAME_LIST[2])
+
+    @staticmethod
+    def compare_fpa_methods(result_all_df):
+        error_tbme = result_all_df[FPA_NAME_LIST[0]] - result_all_df[FPA_NAME_LIST[1]]
+        error_acc_ratio = result_all_df[FPA_NAME_LIST[0]] - result_all_df[FPA_NAME_LIST[2]]
+        means_tbme, stds_tbme, sub_id_list = ErrorBarFigure.get_mean_std(error_tbme, result_all_df['subject_id'])
+        means_acc_ratio, stds_acc_ratio, _ = ErrorBarFigure.get_mean_std(error_acc_ratio, result_all_df['subject_id'])
+
+        plt.figure(figsize=(14, 8))
+        ErrorBarFigure.format_plot()
+        bars, ebars = [], []
+        for i_cate in range(len(sub_id_list)):
+            bars.append(plt.bar(i_cate, means_tbme[i_cate], color='slategray', width=0.4))
+        ErrorBarFigure.draw_ebars(means_tbme, stds_tbme, sub_id_list)
+
+        x_locs = []
+        for i_cate in range(len(sub_id_list)):
+            bars.append(plt.bar(i_cate + 0.4, means_acc_ratio[i_cate], color='brown', width=0.4))
+            x_locs.append(i_cate + 0.4)
+        ErrorBarFigure.draw_ebars(means_acc_ratio, stds_acc_ratio, sub_id_list, x_locs=x_locs)
+        plt.show()
+
+        # plt.plot([-1, 3], [0, 0], linewidth=LINE_WIDTH, color='black')
+        # ErrorBarFigure.set_fpa_errorbar_ticks()
+
+    @staticmethod
+    def draw_ebars(means, stds, cate_id_list, x_locs=None):
+        if x_locs == None:
+            x_locs = range(len(cate_id_list))
+        ebar, caplines, barlinecols = plt.errorbar(x_locs, means, stds,
+                                                   capsize=0, ecolor='black', fmt='none', lolims=True, uplims=True,
+                                                   elinewidth=LINE_WIDTH)
+        for i_cap in range(2):
+            caplines[i_cap].set_marker('_')
+            caplines[i_cap].set_markersize(14)
+            caplines[i_cap].set_markeredgewidth(LINE_WIDTH)
 
     @staticmethod
     def draw_error_bar_figure_trials(result_df):
@@ -31,18 +95,13 @@ class ErrorBarFigure(PaperFigure):
 
         plt.figure(figsize=(6, 6))
         ErrorBarFigure.format_plot()
-        bars, ebars = [], []
+        bars = []
         for i_cate in range(len(cate_id_list)):
             bars.append(plt.bar(i_cate, means[i_cate], color='gray', width=0.7))
 
         plt.plot([-1, 3], [0, 0], linewidth=LINE_WIDTH, color='black')
-        ebar, caplines, barlinecols = plt.errorbar(range(len(cate_id_list)), means, stds,
-                                                   capsize=0, ecolor='black', fmt='none', lolims=True, uplims=True,
-                                                   elinewidth=LINE_WIDTH)
-        for i_cap in range(2):
-            caplines[i_cap].set_marker('_')
-            caplines[i_cap].set_markersize(14)
-            caplines[i_cap].set_markeredgewidth(LINE_WIDTH)
+
+        ErrorBarFigure.draw_ebars(means, stds, cate_id_list)
         ErrorBarFigure.set_fpa_errorbar_ticks()
         plt.savefig('fpa_figures/fpa error of speeds.png')
 
@@ -152,21 +211,9 @@ class ErrorBarFigure(PaperFigure):
         rows = []
         for subject_id in subject_id_list:
             for cate_id in cate_id_list:
-                result_cate_df = result_df[(result_df['subject_id'] == subject_id) & (result_df[cate_2_name] == cate_id)]
+                result_cate_df = result_df[
+                    (result_df['subject_id'] == subject_id) & (result_df[cate_2_name] == cate_id)]
                 rows.append(np.mean(result_cate_df))
         mean_result_df = pd.DataFrame(rows)
         mean_result_df.columns = result_df.columns
         return mean_result_df, cate_id_list
-
-
-
-
-
-
-
-
-
-
-
-
-
