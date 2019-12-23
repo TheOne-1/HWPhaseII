@@ -34,32 +34,35 @@ class ProcessorFPA(Processor):
                 sub_id = int(sub_id)
                 for trial_id in trial_id_list:
                     data_index = (supp_df['subject_id'] == sub_id) & (supp_df['trial_id'] == trial_id)
+                    subtrial_id = supp_df[data_index]['subtrial_id'].values
                     input_data_sub = input_data[data_index]
                     output_data_sub = output_data[data_index]
                     steps, stance_phase_flag = self.initalize_steps_and_stance_phase(input_data_sub)
                     # euler_angles_esti = self.get_euler_angles_gradient_decent(input_data_sub,
                     #                                                           stance_phase_flag)
-                    euler_angles_esti = self.get_complementary_filtered_euler_angles(input_data_sub,
-                                                                supp_df['trial_id'].values, stance_phase_flag)
+                    euler_angles_esti = self.get_complementary_filtered_euler_angles(
+                        input_data_sub, supp_df['trial_id'].values, stance_phase_flag, cut_off_fre=6)
 
-                    acc_IMU_rotated = self.get_rotated_acc(input_data_sub, euler_angles_esti, acc_cut_off_fre=2)
-                    FPA_estis = self.get_FPA_via_max_acc_ratio_new(acc_IMU_rotated, steps)
+                    acc_IMU_rotated = self.get_rotated_acc(input_data_sub, euler_angles_esti, acc_cut_off_fre=3)
+                    FPA_estis = self.get_FPA_via_max_acc_ratio_at_axis_peak(acc_IMU_rotated, steps)
                     self.compare_result(FPA_estis, output_data_sub, steps)
-                    # ProcessorFPA.save_trial_result(sub_id, trial_id, FPA_estis, steps)
+                    ProcessorFPA.save_trial_result(sub_id, trial_id, subtrial_id, FPA_estis, steps)
 
         elif self.experiment_id == 2:
             """find the best parameters"""
             predict_result_df = pd.DataFrame()
-            for win_after_off in np.arange(0, 4, 4):
+            for win_before_off in np.arange(0, 60, 4):
                 steps, stance_phase_flag = self.initalize_steps_and_stance_phase(input_data)
-                euler_angles_esti = self.get_euler_angles_gradient_decent(input_data, stance_phase_flag)
+                euler_angles_esti = self.get_complementary_filtered_euler_angles(
+                    input_data, supp_df['trial_id'].values, stance_phase_flag, cut_off_fre=20)
+
                 acc_IMU_rotated = self.get_rotated_acc(input_data, euler_angles_esti, acc_cut_off_fre=20)
-                FPA_estis = self.get_FPA_via_speed_ratio(acc_IMU_rotated, steps, win_after_off=win_after_off)
+                FPA_estis = self.get_FPA_via_displacement_ratio(acc_IMU_rotated, steps, win_before_off=win_before_off)
                 FPA_trues, FPA_estis = self.compare_result(FPA_estis, output_data, steps)
                 pearson_coeff, RMSE, mean_error = Evaluation._get_all_scores(np.array(FPA_trues), np.array(FPA_estis), precision=3)
                 RMSE = [np.sqrt(mean_squared_error(np.array(FPA_trues), np.array(FPA_estis)+mean_error))]         # !!! unbiased RMSE were recorded
                 predict_result_df = Evaluation.insert_prediction_result(
-                    predict_result_df, win_after_off, pearson_coeff, RMSE, mean_error)
+                    predict_result_df, win_before_off, pearson_coeff, RMSE, mean_error)
             Evaluation.export_prediction_result(predict_result_df)
 
         elif self.experiment_id == 0:
@@ -70,13 +73,15 @@ class ProcessorFPA(Processor):
                 sub_id = int(sub_id)
                 for trial_id in trial_id_list:
                     data_index = (supp_df['subject_id'] == sub_id) & (supp_df['trial_id'] == trial_id)
+                    subtrial_id = supp_df[data_index]['subtrial_id'].values
                     input_data_sub = input_data[data_index]
                     steps, stance_phase_flag = self.initalize_steps_and_stance_phase(input_data_sub)
                     euler_angles_esti = self.get_complementary_filtered_euler_angles(input_data_sub,
                                                                 supp_df['trial_id'].values, stance_phase_flag)
                     acc_IMU_rotated = self.get_rotated_acc(input_data_sub, euler_angles_esti, acc_cut_off_fre=2)
-                    FPA_estis = self.get_FPA_via_max_acc_ratio_new(acc_IMU_rotated, steps)
-                    ProcessorFPA.save_trial_result(sub_id, trial_id, FPA_estis, steps)
+                    FPA_estis = self.get_FPA_via_max_acc_ratio_at_axis_peak(acc_IMU_rotated, steps)
+                    # self.compare_result(FPA_estis, output_data, steps)
+                    ProcessorFPA.save_trial_result(sub_id, trial_id, subtrial_id, FPA_estis, steps)
 
         elif self.experiment_id == 1:
             # Use linear regression to get the best empirical equation parameter
@@ -102,7 +107,7 @@ class ProcessorFPA(Processor):
         return None, None
 
     @staticmethod
-    def save_trial_result(sub_id, trial_id, FPA_estis, steps):
+    def save_trial_result(sub_id, trial_id, subtrial_id, FPA_estis, steps):
         step_flags = np.zeros(FPA_estis.shape)
         for step in steps:
             step_flags[step[0]] = 1     # strike
@@ -110,10 +115,11 @@ class ProcessorFPA(Processor):
         sub_name = SUB_NAMES[sub_id]
         trial_name = TRIAL_NAMES[trial_id]
         file_path = 'step_result/' + sub_name + '/step_result_of_' + trial_name + '.csv'
-        tbme_data = pd.read_csv(file_path, index_col=False)
-        tbme_data['fpa_acc_ratio'] = FPA_estis
-        tbme_data['step_flag'] = step_flags
-        tbme_data.to_csv(file_path, index=False)
+        combined_data = pd.read_csv(file_path, index_col=False)
+        combined_data['fpa_acc_ratio'] = FPA_estis
+        combined_data['step_flag'] = step_flags
+        combined_data['subtrial_id'] = subtrial_id
+        combined_data.to_csv(file_path, index=False)
 
     @staticmethod
     def get_detailed_result_df(id_df, FPA_estis, FPA_trues, steps_used):
@@ -235,7 +241,7 @@ class ProcessorFPA(Processor):
                     (pitch_correction[i_sample] - euler_angles_esti[i_sample, 1])
         return euler_angles_esti
 
-    def get_FPA_via_max_acc_ratio_new(self, acc_IMU_rotated, steps):
+    def get_FPA_via_max_acc_ratio_at_axis_peak(self, acc_IMU_rotated, steps):
         win_before_off = int(0.08 * self.sensor_sampling_fre)
         win_after_off = int(0.12 * self.sensor_sampling_fre)
         data_len = acc_IMU_rotated.shape[0]
@@ -254,21 +260,34 @@ class ProcessorFPA(Processor):
             FPA_estis[the_sample] = the_FPA_esti
         return FPA_estis
 
-    def get_FPA_via_speed_ratio(self, acc_IMU_rotated, steps, win_before_off=50, win_after_off=50):
+    def get_FPA_via_max_acc_ratio_at_norm_peak(self, acc_IMU_rotated, steps):
+        win_before_off = int(0.08 * self.sensor_sampling_fre)
+        win_after_off = int(0.12 * self.sensor_sampling_fre)
+        data_len = acc_IMU_rotated.shape[0]
+        FPA_estis = np.zeros([data_len])
+        planar_acc_norm = norm(acc_IMU_rotated[:, :2], axis=1)
+        for step in steps:
+            acc_x_clip = acc_IMU_rotated[step[1]-win_before_off:step[1]+win_after_off, 0]
+            acc_y_clip = acc_IMU_rotated[step[1]-win_before_off:step[1]+win_after_off, 1]
+            # max_acc_x = np.max(acc_x_clip)
+            # max_acc_y = np.max(acc_y_clip)
+            acc_norm_clip = planar_acc_norm[step[1]-win_before_off:step[1]+win_after_off]
+            max_acc_norm = np.argmax(acc_norm_clip)
 
-        # win_before_off = int(0.2 * self.sensor_sampling_fre)
-        # win_after_off = int(0.2 * self.sensor_sampling_fre)
+            the_FPA_esti = np.arctan2(acc_x_clip[max_acc_norm], acc_y_clip[max_acc_norm]) * 180 / np.pi
+            the_sample = int((step[0] + step[1]) / 2)
+            FPA_estis[the_sample] = the_FPA_esti
+        return FPA_estis
+
+    def get_FPA_via_speed_ratio(self, acc_IMU_rotated, steps, win_before_off=50, win_after_off=50):
         data_len = acc_IMU_rotated.shape[0]
         FPA_estis = np.zeros([data_len])
         for step in steps:
             acc_x_clip = acc_IMU_rotated[step[1]-win_before_off:step[1]+win_after_off, 0]
             acc_y_clip = acc_IMU_rotated[step[1]-win_before_off:step[1]+win_after_off, 1]
 
-            peak_x_index = np.argmax(acc_x_clip)
-            first_negative_after_peak_x = np.argmax(acc_x_clip[peak_x_index:] < 0)
-            integration_end_x = peak_x_index + first_negative_after_peak_x
             peak_y_index = np.argmax(acc_y_clip)
-            first_negative_after_peak_y = np.argmax(acc_y_clip[peak_y_index:] < 0)
+            first_negative_after_peak_y = np.argmax(acc_y_clip[peak_y_index:] < 5)
             integration_end_y = peak_y_index + first_negative_after_peak_y
 
             speed_x = sum(acc_x_clip[:integration_end_y])
@@ -278,19 +297,121 @@ class ProcessorFPA(Processor):
             the_sample = int((step[0] + step[1]) / 2)
             FPA_estis[the_sample] = the_FPA_esti
 
+            plt.plot(acc_x_clip)
+            # if step[1] < 800:      #!!!
+            #     plt.figure()
+            #     plt.plot(acc_x_clip, 'b-')
+            #     plt.plot(acc_y_clip, 'r-')
+            #     plt.plot(integration_end_y, acc_x_clip[integration_end_y], 'bx')
+            #     plt.plot(integration_end_y, acc_y_clip[integration_end_y], 'rx')
+            #     plt.title('good')
+        return FPA_estis
 
-            if step[1] < 800:      #!!!
-                plt.figure()
-                plt.plot(acc_x_clip, 'b-')
-                plt.plot(acc_y_clip, 'r-')
-                plt.plot(integration_end_x, acc_x_clip[integration_end_x], 'bx')
-                plt.plot(integration_end_y, acc_y_clip[integration_end_y], 'rx')
-                plt.title('good')
+    def get_FPA_via_displacement_ratio(self, acc_IMU_rotated, steps, win_before_off=20, win_after_off=100):
+        """Do integration till speed peak"""
+        data_len = acc_IMU_rotated.shape[0]
+        FPA_estis = np.zeros([data_len])
+        delta_t = 1 / MOCAP_SAMPLE_RATE
+        for step in steps:
+            acc_x_clip = acc_IMU_rotated[step[1]-win_before_off:step[1]+win_after_off, 0]
+            acc_y_clip = acc_IMU_rotated[step[1]-win_before_off:step[1]+win_after_off, 1]
+            speed_x, speed_y = np.zeros(acc_x_clip.shape), np.zeros(acc_y_clip.shape)
+            disp_x, disp_y = np.zeros(acc_x_clip.shape), np.zeros(acc_y_clip.shape)
+            for i_sample in range(acc_x_clip.shape[0]):
+                speed_x[i_sample] = speed_x[i_sample-1] + acc_x_clip[i_sample] * delta_t
+                speed_y[i_sample] = speed_y[i_sample-1] + acc_y_clip[i_sample] * delta_t
+                disp_x[i_sample] = disp_x[i_sample-1] + delta_t * (speed_x[i_sample] + speed_x[i_sample-1]) / 2
+                disp_y[i_sample] = disp_y[i_sample-1] + delta_t * (speed_y[i_sample] + speed_y[i_sample-1]) / 2
+            speed_peak_y_index = np.argmax(speed_y)
+            the_FPA_esti = np.arctan2(disp_x[speed_peak_y_index], disp_y[speed_peak_y_index]) * 180 / np.pi
+            the_sample = int((step[0] + step[1]) / 2)
+            FPA_estis[the_sample] = the_FPA_esti
+        return FPA_estis
 
+    def get_FPA_via_displacement_ratio_new(self, acc_IMU_rotated, steps, win_before_off=60, win_after_off=100):
+        """Do integration of the whole next step"""
+        data_len = acc_IMU_rotated.shape[0]
+        FPA_estis = np.zeros([data_len])
+        delta_t = 1 / MOCAP_SAMPLE_RATE
+        for i_step in range(1, len(steps)-1):
+            the_last_step = steps[i_step - 1]
+            step = steps[i_step]
+            the_next_step = steps[i_step + 1]
+            acc_x_clip = np.concatenate([acc_IMU_rotated[the_last_step[1]-win_before_off:step[0], 0], acc_IMU_rotated[step[1]-win_before_off:the_next_step[0], 0]])
+            acc_y_clip = np.concatenate([acc_IMU_rotated[the_last_step[1]-win_before_off:step[0], 1], acc_IMU_rotated[step[1]-win_before_off:the_next_step[0], 1]])
+            speed_x, speed_y = np.zeros(acc_x_clip.shape), np.zeros(acc_y_clip.shape)
+            disp_x, disp_y = np.zeros(acc_x_clip.shape), np.zeros(acc_y_clip.shape)
+            for i_sample in range(acc_x_clip.shape[0]):
+                speed_x[i_sample] = speed_x[i_sample-1] + acc_x_clip[i_sample] * delta_t
+                speed_y[i_sample] = speed_y[i_sample-1] + acc_y_clip[i_sample] * delta_t
+                disp_x[i_sample] = disp_x[i_sample-1] + delta_t * (speed_x[i_sample] + speed_x[i_sample-1]) / 2
+                disp_y[i_sample] = disp_y[i_sample-1] + delta_t * (speed_y[i_sample] + speed_y[i_sample-1]) / 2
+
+            the_FPA_esti = np.arctan2(disp_x[-1], disp_y[-1]) * 180 / np.pi
+            the_sample = int((step[0] + step[1]) / 2)
+            FPA_estis[the_sample] = the_FPA_esti
 
         return FPA_estis
 
+    def get_FPA_via_max_acc_cap(self, acc_IMU_rotated, steps, cap_left=15, cap_right=16, win_before_off=50, win_after_off=35):
+        """The ratio is based on the average angle calculated by the acc ratio"""
+        data_len = acc_IMU_rotated.shape[0]
+        FPA_estis = np.zeros([data_len])
+        for step in steps:
+            acc_x_clip = acc_IMU_rotated[step[1]-win_before_off:step[1]+win_after_off, 0]
+            acc_y_clip = acc_IMU_rotated[step[1]-win_before_off:step[1]+win_after_off, 1]
+            planar_acc_norm = norm(acc_IMU_rotated[step[1]-win_before_off:step[1]+win_after_off, 0:2], axis=1)
 
+            peak_acc_norm_index = np.argmax(planar_acc_norm)
+
+            acc_x_used_clip = acc_x_clip[peak_acc_norm_index-cap_left:peak_acc_norm_index+cap_right]
+            acc_y_used_clip = acc_y_clip[peak_acc_norm_index-cap_left:peak_acc_norm_index+cap_right]
+            angles = np.arctan2(acc_x_used_clip, acc_y_used_clip)
+            the_FPA_esti = np.mean(angles) * 180 / np.pi
+            the_sample = int((step[0] + step[1]) / 2)
+            FPA_estis[the_sample] = the_FPA_esti
+
+            if 20000 < step[1] < 20800:      #!!!
+                plt.figure()
+                # plt.plot(np.arctan2(acc_x_clip, acc_y_clip) * 180 / np.pi)
+                # plt.plot(planar_acc_norm*5)
+                plt.grid()
+                plt.plot(acc_x_clip, 'b-')
+                plt.plot(acc_y_clip, 'r-')
+                plt.plot(range(peak_acc_norm_index-cap_left, peak_acc_norm_index+cap_right), acc_x_clip[peak_acc_norm_index-cap_left:peak_acc_norm_index+cap_right], 'bx')
+                plt.plot(range(peak_acc_norm_index-cap_left, peak_acc_norm_index+cap_right), acc_y_clip[peak_acc_norm_index-cap_left:peak_acc_norm_index+cap_right], 'rx')
+                plt.title('good')
+        return FPA_estis
+
+    def get_FPA_via_max_acc_cap_new(self, acc_IMU_rotated, steps, cap_left=15, cap_right=16, win_before_off=50, win_after_off=35):
+        """The ratio is based on a range of """
+        data_len = acc_IMU_rotated.shape[0]
+        FPA_estis = np.zeros([data_len])
+        planar_acc_norm = norm(acc_IMU_rotated[:, :2], axis=1)
+        fpa_raw = np.arcsin(acc_IMU_rotated[:, 0]/planar_acc_norm) * 180 / np.pi
+        # fpa_raw = StrikeOffDetectorIMU.data_filt(fpa_raw, 2, 200)
+        for step in steps:
+            acc_x_clip = acc_IMU_rotated[step[1]-win_before_off:step[1]+win_after_off, 0]
+            acc_y_clip = acc_IMU_rotated[step[1]-win_before_off:step[1]+win_after_off, 1]
+            planar_acc_norm_clip = planar_acc_norm[step[1]-win_before_off:step[1]+win_after_off]
+            fpa_raw_clip = fpa_raw[step[1]-win_before_off:step[1]+win_after_off]
+
+            peak_acc_norm_index = np.argmax(planar_acc_norm_clip)
+
+            the_FPA_esti = fpa_raw_clip[peak_acc_norm_index]
+            the_sample = int((step[0] + step[1]) / 2)
+            FPA_estis[the_sample] = the_FPA_esti
+
+            if 20000 < step[1] < 20800:      #!!!
+                plt.figure()
+                plt.grid()
+                plt.plot(acc_x_clip, 'b-')
+                plt.plot(acc_y_clip, 'r-')
+                plt.plot(fpa_raw_clip)
+                # plt.plot(range(peak_acc_norm_index-cap_left, peak_acc_norm_index+cap_right), acc_x_clip[peak_acc_norm_index-cap_left:peak_acc_norm_index+cap_right], 'bx')
+                # plt.plot(range(peak_acc_norm_index-cap_left, peak_acc_norm_index+cap_right), acc_y_clip[peak_acc_norm_index-cap_left:peak_acc_norm_index+cap_right], 'rx')
+                plt.title('good')
+        return FPA_estis
 
     @staticmethod
     def get_complementary_filtered_euler_angles_new(input_data, stance_phase_flag, base_correction_coeff=0.065,

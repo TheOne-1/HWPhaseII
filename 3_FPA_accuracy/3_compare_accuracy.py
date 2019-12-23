@@ -6,10 +6,9 @@ from const import SUB_NAMES, TRIAL_NAMES, FPA_TRIALS, FPA_NAME_LIST
 from ResultReader import ResultReader
 
 
-compensation_tbme, compensation_acc_ratio = 15, 2.2  # compensate the bias
-result_df_column_names = FPA_NAME_LIST + ['subject_id', 'trial_id']
+compensation_tbme, compensation_acc_ratio = 15, 6.5  # compensate the bias
+result_df_column_names = FPA_NAME_LIST + ['subtrial_id', 'subject_id', 'trial_id']
 result_all_df = pd.DataFrame(columns=result_df_column_names)
-# error_tbme_list, error_acc_ratio_list = [], []
 for sub_name in SUB_NAMES[:12]:
     print('\nSubject: ' + sub_name)
     sub_id = SUB_NAMES.index(sub_name)
@@ -31,9 +30,14 @@ result_all_df[FPA_NAME_LIST[1]] = result_all_df[FPA_NAME_LIST[1]] - compensation
 result_all_df[FPA_NAME_LIST[2]] = result_all_df[FPA_NAME_LIST[2]] - compensation_acc_ratio
 
 
-PaperFigure.each_sub_fig(result_all_df)
+# PaperFigure.each_sub_fig(result_all_df)
+
 ErrorBarFigure.show_each_pair(result_all_df)
-ErrorBarFigure.compare_fpa_methods(result_all_df)
+ErrorBarFigure.compare_mean_error(result_all_df, 'subject_id', x_label='subject id')
+ErrorBarFigure.compare_mean_error(result_all_df, 'trial_id', ['1.0 m/s', '1.2 m/s', '1.4 m/s'], 'walking speed')
+subtrial_name_list = ['B/L - 10', 'B/L - 5', 'B/L', 'B/L + 15', 'B/L + 30']
+ErrorBarFigure.compare_mean_error(result_all_df, 'subtrial_id', subtrial_name_list, 'feedback value')
+ErrorBarFigure.compare_mean_value(result_all_df, 'subtrial_id', subtrial_name_list, 'feedback value')
 plt.show()
 
 

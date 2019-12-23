@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from const import LINE_WIDTH, FONT_DICT_SMALL, FONT_SIZE, FPA_NAME_LIST, SUB_NAMES
+from const import LINE_WIDTH, FONT_DICT_SMALL, FONT_SIZE, FPA_NAME_LIST, SUB_NAMES, FONT_DICT
 from Evaluation import Evaluation
 
 
@@ -51,28 +51,71 @@ class ErrorBarFigure(PaperFigure):
         plt.title(FPA_NAME_LIST[2])
 
     @staticmethod
-    def compare_fpa_methods(result_all_df):
+    def compare_mean_error(result_all_df, type_name, x_tick_list=None, x_label=None):
         error_tbme = result_all_df[FPA_NAME_LIST[0]] - result_all_df[FPA_NAME_LIST[1]]
         error_acc_ratio = result_all_df[FPA_NAME_LIST[0]] - result_all_df[FPA_NAME_LIST[2]]
-        means_tbme, stds_tbme, sub_id_list = ErrorBarFigure.get_mean_std(error_tbme, result_all_df['subject_id'])
-        means_acc_ratio, stds_acc_ratio, _ = ErrorBarFigure.get_mean_std(error_acc_ratio, result_all_df['subject_id'])
+        means_tbme, stds_tbme, id_list = ErrorBarFigure.get_mean_std(error_tbme, result_all_df[type_name])
+        means_acc_ratio, stds_acc_ratio, _ = ErrorBarFigure.get_mean_std(error_acc_ratio, result_all_df[type_name])
 
         plt.figure(figsize=(14, 8))
         ErrorBarFigure.format_plot()
         bars, ebars = [], []
-        for i_cate in range(len(sub_id_list)):
+        for i_cate in range(len(id_list)):
             bars.append(plt.bar(i_cate, means_tbme[i_cate], color='slategray', width=0.4))
-        ErrorBarFigure.draw_ebars(means_tbme, stds_tbme, sub_id_list)
+        ErrorBarFigure.draw_ebars(means_tbme, stds_tbme, id_list)
 
         x_locs = []
-        for i_cate in range(len(sub_id_list)):
+        for i_cate in range(len(id_list)):
             bars.append(plt.bar(i_cate + 0.4, means_acc_ratio[i_cate], color='brown', width=0.4))
             x_locs.append(i_cate + 0.4)
-        ErrorBarFigure.draw_ebars(means_acc_ratio, stds_acc_ratio, sub_id_list, x_locs=x_locs)
-        plt.show()
+        ErrorBarFigure.draw_ebars(means_acc_ratio, stds_acc_ratio, id_list, x_locs=x_locs)
+        ax = plt.gca()
+        x_tick_loc = [i + 0.2 for i in range(len(id_list))]
+        ax.tick_params(labelsize=FONT_DICT['fontsize'])
+        ax.set_ylabel('Mean error (°)', fontdict=FONT_DICT)
+        ax.set_xticks(x_tick_loc)
+        if x_tick_list is None:
+            x_tick_list = [str(int(the_id)) for the_id in id_list]
+        if x_label is None:
+            x_label = type_name
+        ax.set_xticklabels(x_tick_list, fontdict=FONT_DICT)
+        ax.set_xlabel(x_label, fontdict=FONT_DICT)
 
-        # plt.plot([-1, 3], [0, 0], linewidth=LINE_WIDTH, color='black')
-        # ErrorBarFigure.set_fpa_errorbar_ticks()
+        plt.legend([bars[0], bars[-1]], FPA_NAME_LIST[1:3])
+
+    @staticmethod
+    def compare_mean_value(result_all_df, type_name, x_tick_list=None, x_label=None):
+        values_tbme = result_all_df[FPA_NAME_LIST[1]]
+        values_acc_ratio = result_all_df[FPA_NAME_LIST[2]]
+        values_vicon = result_all_df[FPA_NAME_LIST[0]]
+        means_tbme, stds_tbme, id_list = ErrorBarFigure.get_mean_std(values_tbme, result_all_df[type_name])
+        means_acc_ratio, stds_acc_ratio, _ = ErrorBarFigure.get_mean_std(values_acc_ratio, result_all_df[type_name])
+        means_vicon, stds_vicon, _ = ErrorBarFigure.get_mean_std(values_vicon, result_all_df[type_name])
+
+        plt.figure(figsize=(14, 8))
+        ErrorBarFigure.format_plot()
+        bars = []
+        for i_cate in range(len(id_list)):
+            bars.append(plt.bar(i_cate, means_vicon[i_cate], color='black', width=0.25))
+
+        for i_cate in range(len(id_list)):
+            bars.append(plt.bar(i_cate + 0.25, means_tbme[i_cate], color='slategray', width=0.25))
+
+        for i_cate in range(len(id_list)):
+            bars.append(plt.bar(i_cate + 0.5, means_acc_ratio[i_cate], color='brown', width=0.25))
+
+        ax = plt.gca()
+        x_tick_loc = [i + 0.25 for i in range(len(id_list))]
+        ax.tick_params(labelsize=FONT_DICT['fontsize'])
+        ax.set_ylabel('Mean error (°)', fontdict=FONT_DICT)
+        ax.set_xticks(x_tick_loc)
+        if x_tick_list is None:
+            x_tick_list = [str(int(the_id)) for the_id in id_list]
+        if x_label is None:
+            x_label = type_name
+        ax.set_xticklabels(x_tick_list, fontdict=FONT_DICT)
+        ax.set_xlabel(x_label, fontdict=FONT_DICT)
+        plt.legend([bars[0], bars[len(bars)//2], bars[-1]], FPA_NAME_LIST)
 
     @staticmethod
     def draw_ebars(means, stds, cate_id_list, x_locs=None):

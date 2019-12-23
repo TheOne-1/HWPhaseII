@@ -25,6 +25,7 @@ class ResultReader:
         :return:
         """
         fpa_raw_values = trial_result[fpa_name_list].values
+        subtrial_ids = trial_result['subtrial_id'].values
         fpa_num = len(fpa_name_list)
         step_result_list = []
         abandoned_step_num = 0
@@ -41,10 +42,11 @@ class ResultReader:
             fpa_index = valid_value_flag[1].argsort()
             valid_fpas_unsorted = step_clip[valid_value_flag]
             valid_fpas = valid_fpas_unsorted[fpa_index]
-            step_result_list.append(valid_fpas)
+            one_row_result = np.concatenate([valid_fpas, [subtrial_ids[step[0]]]])
+            step_result_list.append(one_row_result)
 
         print('{num} steps abandoned'.format(num=abandoned_step_num))
-        trial_result = np.zeros([len(step_result_list), fpa_num])
+        trial_result = np.zeros([len(step_result_list), fpa_num+1])
         for i_step in range(len(step_result_list)):
             trial_result[i_step, :] = step_result_list[i_step]
         return trial_result
