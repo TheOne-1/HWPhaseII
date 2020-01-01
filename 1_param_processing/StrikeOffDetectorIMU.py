@@ -17,6 +17,59 @@ class StrikeOffDetectorIMU:
         self._IMU_location = IMU_location
         self._sampling_fre = sampling_fre
 
+    def get_walking_strike_off(self, strike_delay, off_delay, cut_off_fre_strike_off=5):
+        strike_acc_width = 10 * (self._sampling_fre / 100)
+        strike_acc_prominence = 3.5
+        strike_acc_height = -9
+        off_gyr_thd = 2  # threshold the minimum peak of medio-lateral heel strike
+        off_gyr_prominence = 0.1
+
+        acc_data = self.get_IMU_data(acc=True, gyr=False).values
+        acc_z_unfilt = -acc_data[:, 0]
+        acc_z_filtered = self.data_filt(acc_z_unfilt, cut_off_fre_strike_off, self._sampling_fre)
+
+        gyr_data = self.get_IMU_data(acc=False, gyr=True).values
+        gyr_x_unfilt = - np.rad2deg(gyr_data[:, 0])
+        gyr_x_filtered = self.data_filt(gyr_x_unfilt, cut_off_fre_strike_off, self._sampling_fre)
+
+        data_len = acc_data.shape[0]
+        strike_list, off_list = [], []
+
+        # find the first off. When it is found
+        start_buffer = 3 * self._sampling_fre
+        for i_clip in range(10):
+            clip_start = i_clip * 2 * self._sampling_fre + start_buffer
+            clip_end = (i_clip + 1) * 2 * self._sampling_fre + start_buffer
+
+            peaks, _ = signal.find_peaks(gyr_x_filtered[clip_start:clip_end], height=off_gyr_thd,
+                                         prominence=off_gyr_prominence)
+            if len(peaks) > 0:
+                last_off = peaks[-1] + off_delay + start_buffer
+                break
+        if 'last_off' not in locals():
+            raise ValueError('First off not found.')
+        # find strikes and offs (with filter delays)
+        check_win_len = int(1.5 * self._sampling_fre)           # find strike off within this range
+        for i_sample in range(last_off+1, data_len):
+            if i_sample - last_off > check_win_len:
+                try:
+                    acc_peak = self.find_peak_max(acc_z_filtered[last_off:i_sample-int(check_win_len/3)],
+                                                  width=strike_acc_width,
+                                                  prominence=strike_acc_prominence, height=strike_acc_height)
+                    gyr_peak = self.find_peak_max(gyr_x_filtered[last_off:i_sample],
+                                                  height=off_gyr_thd, prominence=off_gyr_prominence)
+                    strike_list.append(acc_peak + last_off + strike_delay)
+                    off_list.append(gyr_peak + last_off + off_delay)
+                    last_off = off_list[-1]
+                except ValueError as e:
+                    if 1e3 < i_sample < 1e4:
+                        print(i_sample)
+                    last_off = last_off + int(self._sampling_fre * 0.4)     # skip this step
+        plt.figure()
+        plt.plot(acc_z_filtered)
+        plt.plot(gyr_x_filtered)
+        return strike_list, off_list
+
     @staticmethod
     def check_true_values(gait_event, step_num, diff_ratio=0.15):
         """
@@ -134,6 +187,16 @@ class StrikeOffDetectorIMU:
         plt.legend([strike_plt_handle[0], off_plt_handle[0], strike_plt_handle_esti[0], off_plt_handle_esti[0]],
                    ['true_strikes', 'true_offs', 'estimated_strikes', 'estimated_offs'])
 
+    def find_peak_max(self, data_clip, height, width=None, prominence=None):
+        """
+        find the maximum peak
+        :return:
+        """
+        peaks, properties = signal.find_peaks(data_clip, width=width, height=height, prominence=prominence)
+        peak_heights = properties['peak_heights']
+        max_index = np.argmax(peak_heights)
+        return peaks[max_index]
+
 
 class StrikeOffDetectorIMUFilter(StrikeOffDetectorIMU):
     """
@@ -171,16 +234,6 @@ class StrikeOffDetectorIMUFilter(StrikeOffDetectorIMU):
         print(self._IMU_location + ' IMU ' + event_name + ' detection result: difference mean = ' + str(diff_mean) +
               ', difference std = ' + str(diff_std) + ', number difference = ' + str(diff_in_num))
         return diff_in_num
-
-    def find_peak_max(self, data_clip, height, width=None, prominence=None):
-        """
-        find the maximum peak
-        :return:
-        """
-        peaks, properties = signal.find_peaks(data_clip, width=width, height=height, prominence=prominence)
-        peak_heights = properties['peak_heights']
-        max_index = np.argmax(peak_heights)
-        return peaks[max_index]
 
     def get_walking_strike_off(self, strike_delay, off_delay, cut_off_fre_strike_off=5):
         strike_acc_width = 10 * (self._sampling_fre / 100)

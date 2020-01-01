@@ -10,6 +10,7 @@ from numpy import sin, cos
 from transforms3d.euler import euler2mat
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
+from scipy.signal import savgol_filter
 
 
 class ProcessorFPA(Processor):
@@ -30,6 +31,7 @@ class ProcessorFPA(Processor):
             """brand new functions for publication"""
             sub_id_list = np.sort(list(set(supp_df['subject_id'].values))).astype('int')
             trial_id_list = np.sort(list(set(supp_df['trial_id'].values))).astype('int')
+            fpa_true_list, fpa_esti_list = [], []
             for sub_id in sub_id_list:
                 sub_id = int(sub_id)
                 for trial_id in trial_id_list:
@@ -43,10 +45,16 @@ class ProcessorFPA(Processor):
                     euler_angles_esti = self.get_complementary_filtered_euler_angles(
                         input_data_sub, supp_df['trial_id'].values, stance_phase_flag, cut_off_fre=6)
 
-                    acc_IMU_rotated = self.get_rotated_acc(input_data_sub, euler_angles_esti, acc_cut_off_fre=3)
-                    FPA_estis = self.get_FPA_via_max_acc_ratio_at_axis_peak(acc_IMU_rotated, steps)
-                    self.compare_result(FPA_estis, output_data_sub, steps)
+                    acc_IMU_rotated = self.get_rotated_acc_new_filter(input_data_sub, euler_angles_esti)
+                    # acc_IMU_rotated = self.get_rotated_acc(input_data_sub, euler_angles_esti, acc_cut_off_fre=3)
+                    FPA_estis = self.get_FPA_via_max_acc_ratio_at_norm_peak(acc_IMU_rotated, steps)
+                    fpa_true_temp, fpa_esti_temp = self.compare_result(FPA_estis, output_data_sub, steps)
+                    fpa_true_list.extend(fpa_true_temp)
+                    fpa_esti_list.extend(fpa_esti_temp)
                     ProcessorFPA.save_trial_result(sub_id, trial_id, subtrial_id, FPA_estis, steps)
+            plt.figure()
+            plt.plot(fpa_true_list, fpa_esti_list, '.')
+            plt.plot([-20, 60], [-20, 60], 'black')
 
         elif self.experiment_id == 2:
             """find the best parameters"""
@@ -105,6 +113,30 @@ class ProcessorFPA(Processor):
             detailed_result_df = self.get_detailed_result_df(supp_df, FPA_estis, FPA_trues, steps_used)
             detailed_result_df.to_csv('detailed_result_df.csv', index=False)
         return None, None
+
+    @staticmethod
+    def get_rotated_acc_new_filter(input_data, euler_angles):
+        acc_IMU_unfilted = input_data[:, 0:3]
+
+        acc_IMU = np.zeros(acc_IMU_unfilted.shape)
+        for i_axis in range(3):
+            acc_IMU[:, i_axis] = ProcessorFPA.smooth(acc_IMU_unfilted[:, i_axis], 100)
+            # plt.figure()
+            # plt.plot(acc_IMU[:, i_axis])
+            # plt.plot(acc_IMU_unfilted[:, i_axis])
+
+        # acc_IMU = StrikeOffDetectorIMU.data_filt(acc_IMU_unfilted, 3, 200)
+        # for i_axis in range(3):
+        #     plt.figure()
+        #     plt.plot(acc_IMU[:, i_axis])
+        #     plt.plot(acc_IMU_unfilted[:, i_axis])
+
+        acc_IMU_rotated = np.zeros(acc_IMU.shape)
+        data_len = acc_IMU.shape[0]
+        for i_sample in range(data_len):
+            dcm_mat = euler2mat(euler_angles[i_sample, 0], euler_angles[i_sample, 1], 0)
+            acc_IMU_rotated[i_sample, :] = np.matmul(dcm_mat, acc_IMU[i_sample, :].T)
+        return acc_IMU_rotated
 
     @staticmethod
     def save_trial_result(sub_id, trial_id, subtrial_id, FPA_estis, steps):
@@ -523,8 +555,16 @@ class ProcessorFPA(Processor):
             if len(esti_index) == 1 and len(true_index) == 1:
                 fpa_esti_list.append(fpa_esti[esti_index[0] + step[0]])
                 fpa_true_list.append(fpa_true[true_index[0] + step[0], 0])
-        plt.figure()
-        plt.plot(fpa_true_list, fpa_esti_list, '.')
-        plt.plot([-20, 60], [-20, 60], 'black')
         return fpa_true_list, fpa_esti_list
+
+    @staticmethod
+    def smooth(x, window_len=11, window='hamming'):
+        # if not window in ['flat', 'hanning', 'hamming', 'bartlett', 'blackman']:
+        if window == 'flat':  # moving average
+            w = np.ones(window_len, 'd')
+        else:
+            w = eval('np.' + window + '(window_len)')
+
+        y = np.convolve(w / w.sum(), x, mode='same')
+        return y
 

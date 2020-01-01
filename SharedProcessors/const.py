@@ -36,7 +36,7 @@ TRUNK_TRIALS = (TRIAL_NAMES[1], TRIAL_NAMES[4], TRIAL_NAMES[7], TRIAL_NAMES[10])
 FPA_TRIALS = (TRIAL_NAMES[3], TRIAL_NAMES[6], TRIAL_NAMES[9])
 
 # in Haisheng sensor's column names, x and y are switched to make it the same as Xsens column
-COLUMN_NAMES_HAISHENG = ['hour', 'minute', 'second', 'millisecond', 'acc_y', 'acc_x', 'acc_z', 'gyr_y', 'gyr_x',
+COLUMN_NAMES_HAISHENG = ['hour', 'minute', 'second', 'millisecond', 'acc_x', 'acc_y', 'acc_z', 'gyr_x', 'gyr_y',
                          'gyr_z', 'mag_y', 'mag_x', 'mag_z']
 
 SEGMENT_MARKERS = {'trunk': ['RAC', 'LAC', 'C7'], 'pelvis': ['RIAS', 'LIAS', 'LIPS', 'RIPS'],
@@ -111,3 +111,26 @@ TRUNK_SUBTRIAL_NAMES = ('normal trunk', 'large sway', 'backward inclination',
 accuracy_path = 'D:/Tian/Research/Projects/HuaweiProject/codes/190807DataProcessPhaseII/2_FPA/'
 
 FPA_NAME_LIST = ['fpa_vicon', 'fpa_tbme_no_cali', 'fpa_acc_ratio']
+
+DATA_PATH_HS = 'D:/Tian/Research/Projects/ML Project/data/haisheng data/'
+
+# s9_lyf's data is strange
+SUB_AND_TRIALS_HS = {'s5_ylw': [75, 74, 78, 77, 79, 76, 80],
+                     's10_gk': [27, 23, 22, 26, 21, 25, 24],
+                     's11_zy': [33, 30, 32, 29, 28, 34, 31],
+                     's12_yxc': [70, 68, 73, 71, 69, 72, 67],
+                     's13_xy': [53, 51, 57, 52, 55, 56, 54],
+                     's14_pbs': [85, 87, 89, 86, 88, 90, 91]}
+SUB_NAMES_HS = tuple(SUB_AND_TRIALS_HS.keys())
+
+MARKERS_HS = ['l_toe', 'l_heel']
+
+SUB_SELECTED_SPEEDS = {'s5_ylw': 1.1, 's10_gk': 1.2, 's11_zy': 1.2,
+                       's12_yxc': 1.1, 's13_xy': 1.2, 's14_pbs': 1.2}
+
+TRIAL_NAMES_HS = ['normal', 'small_in', 'medium_in', 'large_in', 'small_out', 'medium_out', 'large_out']
+
+
+
+
+
