@@ -12,6 +12,7 @@ from numpy.linalg import norm
 from StrikeOffDetectorIMU import StrikeOffDetectorIMU
 from scipy.signal import butter, filtfilt, find_peaks
 from scipy import signal
+from numpy import cos, sin
 
 
 class StrikeOffDetectorIMUHS(StrikeOffDetectorIMU):
@@ -348,14 +349,16 @@ class DataInitializerHS:
         """
         sensor_data = self.init_sensor_data_sub()
         trial_id_overall_min = min(SUB_AND_TRIALS_HS[self.sub_folder])
+        trial_id_order = 0
         for trial_id_overall in SUB_AND_TRIALS_HS[self.sub_folder]:
-            trial_id_order = trial_id_overall - trial_id_overall_min
-            sync_params = self.init_sync_point(trial_id_order)
+            trial_id_time = trial_id_overall - trial_id_overall_min
+            sync_params = self.init_sync_point(trial_id_time)
             force_data_df = self.init_force_data(trial_id_overall, sync_params)
             sensor_data_df = self.init_sensor_data_trial(sensor_data, sync_params)
             marker_data_df = self.init_marker_data(trial_id_overall, sync_params)
             trial_data_df = pd.concat([force_data_df, marker_data_df, sensor_data_df], axis=1, join='inner')
             self.save_trial_data(trial_data_df, trial_id_order)
+            trial_id_order += 1
 
     @staticmethod
     def init_placement_offset(sub_folder):
@@ -425,7 +428,6 @@ class DataInitializerHS:
         sensor_data_cols = ['sample'] + DATA_COLUMNS_IMU + ['FPA_tbme_average', 'FPA_tbme_raw']
         sensor_data_all = sensor_data_reader.data_raw_df[sensor_data_cols]
         sensor_data_all[['FPA_tbme_raw', 'FPA_tbme_average']] -= self._placement_offset
-        sensor_data_all[['gyr_x', 'gyr_y', 'gyr_z']] = np.deg2rad(sensor_data_all[['gyr_x', 'gyr_y', 'gyr_z']])
         sensor_data_all[['acc_x', 'acc_y', 'acc_z']] = 9.81 * sensor_data_all[['acc_x', 'acc_y', 'acc_z']]
         sensor_data_all = sensor_data_all.rename(columns={'sample': 'IMU_frame'})
         return sensor_data_all

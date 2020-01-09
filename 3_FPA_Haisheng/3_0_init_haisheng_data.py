@@ -13,9 +13,9 @@ for sub_folder in SUB_NAMES_HS[:]:
     # param_initializer.start_init()
 
     fpa_initializer = InitFPA(sub_folder)
-    fpa_initializer.start_init()
+    fpa_initializer.backward_fpa_estimation()
 
-    plt.show()
+plt.show()
 
 
 
