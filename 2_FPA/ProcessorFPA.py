@@ -10,7 +10,6 @@ from numpy import sin, cos
 from transforms3d.euler import euler2mat
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
-from scipy.signal import savgol_filter
 
 
 class ProcessorFPA(Processor):

@@ -4,14 +4,14 @@ from DataProcessorHS import DataInitializerHS, ParamInitializerHS
 from ProcessorFPAHS import InitFPA
 
 
-for sub_folder in SUB_NAMES_HS[:]:
+for sub_folder in SUB_NAMES_HS[:6]:
     print(sub_folder)
 
     # data_initializer = DataInitializerHS(sub_folder)
     # data_initializer.start_init()
     # param_initializer = ParamInitializerHS(sub_folder)
     # param_initializer.start_init()
-
+    #
     fpa_initializer = InitFPA(sub_folder)
     fpa_initializer.backward_fpa_estimation()
 

@@ -120,13 +120,24 @@ SUB_AND_TRIALS_HS = {'s5_ylw': [75, 74, 78, 77, 79, 76, 80],
                      's11_zy': [33, 30, 32, 29, 28, 34, 31],
                      's12_yxc': [70, 68, 73, 71, 69, 72, 67],
                      's13_xy': [53, 51, 57, 52, 55, 56, 54],
-                     's14_pbs': [85, 87, 89, 86, 88, 90, 91]}
+                     's14_pbs': [85, 87, 89, 86, 88, 90, 91],
+                     's1_wy': [],
+                     's2_xjk': [],
+                     's3_js': [],
+                     's4_tt': [],
+                     's6_hyj': [],
+                     's7_xhs': [],
+                     's8_jon': []}
+
 SUB_NAMES_HS = tuple(SUB_AND_TRIALS_HS.keys())
 
 MARKERS_HS = ['l_toe', 'l_heel']
 
 SUB_SELECTED_SPEEDS = {'s5_ylw': 1.1, 's10_gk': 1.2, 's11_zy': 1.2,
-                       's12_yxc': 1.1, 's13_xy': 1.2, 's14_pbs': 1.2}
+                       's12_yxc': 1.1, 's13_xy': 1.2, 's14_pbs': 1.2,
+                       's1_wy': 1.15, 's2_xjk': 1.2, 's3_js': 1.2,
+                       's4_tt': 1.15, 's6_hyj': 1.1, 's7_xhs': 1.2,
+                       's8_jon': 1.2}
 
 TRIAL_NAMES_HS = ['normal', 'small_in', 'medium_in', 'large_in', 'small_out', 'medium_out', 'large_out']
 

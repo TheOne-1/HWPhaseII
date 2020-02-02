@@ -73,7 +73,7 @@ class Processor:
             data_array = data_array.reshape(1, -1)
         data_len = data_array.shape[1]
         data_step = np.arange(0, data_len)
-        resampled_step = np.linspace(0, data_len, resampled_len)
+        resampled_step = np.linspace(0, data_len-1, resampled_len)
         tck, data_step = interpo.splprep(data_array, u=data_step, s=0)
         data_resampled = interpo.splev(resampled_step, tck, der=0)[0]
         return data_resampled

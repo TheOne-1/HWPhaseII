@@ -26,7 +26,7 @@ class StrikeOffDetectorIMUHS(StrikeOffDetectorIMU):
             column_names += ['mag_' + axis for axis in ['x', 'y', 'z']]
         return self._gait_data_df[column_names]
 
-    def show_IMU_data_and_strike_off(self, estimated_strike_indexes, estimated_off_indexes):
+    def show_IMU_data_and_strike_off(self, estimated_strike_indexes, estimated_off_indexes, cut_off_fre_strike_off=6):
         """
         This function is used for giving ideas about
         :return:
@@ -39,7 +39,7 @@ class StrikeOffDetectorIMUHS(StrikeOffDetectorIMU):
 
         gyr_data = self.get_IMU_data(acc=False, gyr=True).values
         gyr_x = -gyr_data[:, 0]
-        gyr_x = self.data_filt(gyr_x, 5, self._sampling_fre)
+        gyr_x = self.data_filt_left(gyr_x, cut_off_fre_strike_off, self._sampling_fre)
         plt.figure()
         plt.title(self._trial_name + '   ' + self._IMU_location + '   gyr_x')
         plt.plot(gyr_x)
@@ -51,44 +51,73 @@ class StrikeOffDetectorIMUHS(StrikeOffDetectorIMU):
         plt.legend([strike_plt_handle[0], off_plt_handle[0], strike_plt_handle_esti[0], off_plt_handle_esti[0]],
                    ['true_strikes', 'true_offs', 'estimated_strikes', 'estimated_offs'])
 
-    def get_walking_strike_off(self, strike_delay, off_delay, cut_off_fre_strike_off=5):
+    def find_peak_max(self, data_clip, height, width=None, prominence=None):
+        """
+        find the maximum peak
+        :return:
+        """
+        peaks, properties = signal.find_peaks(data_clip, width=width, height=height, prominence=prominence)
+        if len(peaks) == 0:
+            return None
+        peak_heights = properties['peak_heights']
+        max_index = np.argmax(peak_heights)
+        return peaks[max_index]
+
+    @staticmethod
+    def data_filt_left(data, cut_off_fre, sampling_fre, filter_order=2):
+        fre = cut_off_fre / (sampling_fre / 2)
+        b, a = butter(filter_order, fre, 'lowpass')
+        if len(data.shape) == 1:
+            data_filt = signal.lfilter(b, a, data)
+        else:
+            data_filt = signal.lfilter(b, a, data, axis=0)
+        return data_filt
+
+    def get_walking_strike_off(self, strike_delay, off_delay, cut_off_fre_strike_off=6):
         off_gyr_thd = 2  # threshold the minimum peak of medio-lateral heel strike
-        off_gyr_prominence = 0.1
+        off_gyr_prominence = 2
 
         gyr_data = self.get_IMU_data(acc=False, gyr=True).values
-        gyr_x_unfilt = - np.rad2deg(gyr_data[:, 0])
-        gyr_x_filtered = self.data_filt(gyr_x_unfilt, cut_off_fre_strike_off, self._sampling_fre)
+        gyr_x_unfilt = - gyr_data[:, 0]
+        gyr_x = self.data_filt_left(gyr_x_unfilt, cut_off_fre_strike_off, self._sampling_fre)
 
         data_len = gyr_data.shape[0]
         strike_list, off_list = [], []
 
         # find the first off. When it is found
-        start_buffer = 3 * self._sampling_fre
-        for i_clip in range(10):
-            clip_start = i_clip * 2 * self._sampling_fre + start_buffer
-            clip_end = (i_clip + 1) * 2 * self._sampling_fre + start_buffer
+        start_buffer = 5 * self._sampling_fre
+        clip_len = 4 * self._sampling_fre
+        for i_clip in range(5):
+            clip_start = i_clip * clip_len + start_buffer
+            clip_end = (i_clip + 1) * clip_len + start_buffer
 
-            peaks, _ = signal.find_peaks(gyr_x_filtered[clip_start:clip_end], height=off_gyr_thd,
-                                         prominence=off_gyr_prominence)
-            if len(peaks) > 0:
-                last_off = peaks[-1] + off_delay + start_buffer
+            max_peak_index = self.find_peak_max(gyr_x[clip_start:clip_end], height=off_gyr_thd,
+                                                prominence=off_gyr_prominence)
+            if max_peak_index is not None:
+                last_off = max_peak_index + off_delay + i_clip * clip_len + start_buffer
                 break
         if 'last_off' not in locals():
             raise ValueError('First off not found.')
-        # find strikes and offs (with filter delays)
+
+        # # !!!
+        # plt.plot(gyr_x_unfilt)
+        # plt.plot(gyr_x)
+        # plt.show()
+
+        # find strikes and offs
         check_win_len = int(1.5 * self._sampling_fre)           # find strike off within this range
         for i_sample in range(last_off+1, data_len):
             if i_sample - last_off > check_win_len:
                 try:
-                    peaks, properties = find_peaks(gyr_x_filtered[last_off:i_sample], height=-1e-5)
+                    peaks, properties = find_peaks(gyr_x[last_off:i_sample], height=off_gyr_thd, prominence=off_gyr_prominence)
 
                     peak_heights = properties['peak_heights']
                     first_peak = peaks[0]
                     max_index = np.argmax(peak_heights)
-                    heighest_peak = peaks[max_index]
+                    highest_peak = peaks[max_index]
 
                     strike_list.append(first_peak + last_off + strike_delay)
-                    off_list.append(heighest_peak + last_off + off_delay)
+                    off_list.append(highest_peak + last_off + off_delay)
                     last_off = off_list[-1]
                 except IndexError as e:
                     if 2e3 < i_sample < 1e4:
@@ -138,12 +167,13 @@ class ParamInitializerHS:
 
     @staticmethod
     def get_strike_off_from_imu(gait_data_df, param_data_df, check_strike_off=True,
-                                plot_the_strike_off=False):
+                                plot_the_strike_off=True):
         my_detector = StrikeOffDetectorIMUHS('', gait_data_df, param_data_df, 'l_foot', HAISHENG_SENSOR_SAMPLE_RATE)
-        strike_delay, off_delay = 1, 7  # delay from the peak
-        estimated_strike_indexes, estimated_off_indexes = my_detector.get_walking_strike_off(strike_delay, off_delay)
+        strike_delay, off_delay = -3, 0   # delay from the peak
+        fre = 6
+        estimated_strike_indexes, estimated_off_indexes = my_detector.get_walking_strike_off(strike_delay, off_delay, fre)
         if plot_the_strike_off:
-            my_detector.show_IMU_data_and_strike_off(estimated_strike_indexes, estimated_off_indexes)
+            my_detector.show_IMU_data_and_strike_off(estimated_strike_indexes, estimated_off_indexes, fre)
         data_len = gait_data_df.shape[0]
         estimated_strikes, estimated_offs = np.zeros([data_len]), np.zeros([data_len])
         estimated_strikes[estimated_strike_indexes] = 1
