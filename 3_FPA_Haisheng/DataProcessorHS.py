@@ -3,7 +3,8 @@ from HaishengSensorReader import HaishengSensorReader
 import pandas as pd
 import matplotlib.pyplot as plt
 from const import DATA_PATH_HS, SUB_AND_TRIALS_HS, DATA_COLUMNS_IMU, MARKERS_HS, SUB_SELECTED_SPEEDS, \
-    TRIAL_NAMES_HS, HAISHENG_SENSOR_SAMPLE_RATE, COLUMN_NAMES_HAISHENG
+    TRIAL_NAMES_HS, HAISHENG_SENSOR_SAMPLE_RATE, COLUMN_NAMES_HAISHENG, SUB_TRIAL_NAME_SPECIAL,\
+    SUB_TRIAL_NUM, VICON_FOLDER_2_SUB
 import xlrd
 import textract
 import re
@@ -13,6 +14,7 @@ from StrikeOffDetectorIMU import StrikeOffDetectorIMU
 from scipy.signal import butter, filtfilt, find_peaks
 from scipy import signal
 from numpy import cos, sin
+import os
 
 
 class StrikeOffDetectorIMUHS(StrikeOffDetectorIMU):
@@ -41,7 +43,7 @@ class StrikeOffDetectorIMUHS(StrikeOffDetectorIMU):
         gyr_x = -gyr_data[:, 0]
         gyr_x = self.data_filt_left(gyr_x, cut_off_fre_strike_off, self._sampling_fre)
         plt.figure()
-        plt.title(self._trial_name + '   ' + self._IMU_location + '   gyr_x')
+        plt.title(self._trial_name + '   gyr_x')
         plt.plot(gyr_x)
         strike_plt_handle = plt.plot(true_strike_indexes, gyr_x[true_strike_indexes], 'g*')
         off_plt_handle = plt.plot(true_off_indexes, gyr_x[true_off_indexes], 'gx')
@@ -147,7 +149,7 @@ class ParamInitializerHS:
             # get strikes and offs (force plate measurements)
             l_strikes, l_offs = self.get_strike_off(gait_data_df)
 
-            self.check_strikes_offs(-gait_data_df['f_1_z'], l_strikes, l_offs, TRIAL_NAMES_HS[trial_id] + ' left foot')
+            self.check_strikes_offs(-gait_data_df['f_1_z'], l_strikes, l_offs, TRIAL_NAMES_HS[trial_id])
             # get steps
             l_steps = self.get_legal_steps(l_strikes, l_offs, 'l', self.__check_steps, gait_data_df=gait_data_df)
             # get FPA and trunk angles
@@ -155,7 +157,11 @@ class ParamInitializerHS:
             param_data = np.column_stack([l_strikes, l_offs, l_FPA_all])
             param_data_df = pd.DataFrame(param_data)
             param_data_df.columns = ['l_strikes', 'l_offs', 'l_FPA_all']
-            estimated_strikes, estimated_offs = ParamInitializerHS.get_strike_off_from_imu(gait_data_df, param_data_df)
+            estimated_strikes, estimated_offs = ParamInitializerHS.get_strike_off_from_imu(gait_data_df, param_data_df, TRIAL_NAMES_HS[trial_id])
+
+            #!!!
+            plt.plot(gait_data_df['f_1_z']/100)
+
             param_data_df.insert(len(param_data_df.columns), 'strikes_IMU', estimated_strikes)
             param_data_df.insert(len(param_data_df.columns), 'offs_IMU', estimated_offs)
             param_data_df.insert(0, 'vicon_frame', gait_data_df['vicon_frame'])
@@ -166,9 +172,9 @@ class ParamInitializerHS:
             self.save_trial_param(param_data_df, trial_id)
 
     @staticmethod
-    def get_strike_off_from_imu(gait_data_df, param_data_df, check_strike_off=True,
+    def get_strike_off_from_imu(gait_data_df, param_data_df, trial_name, check_strike_off=True,
                                 plot_the_strike_off=True):
-        my_detector = StrikeOffDetectorIMUHS('', gait_data_df, param_data_df, 'l_foot', HAISHENG_SENSOR_SAMPLE_RATE)
+        my_detector = StrikeOffDetectorIMUHS(trial_name, gait_data_df, param_data_df, 'l_foot', HAISHENG_SENSOR_SAMPLE_RATE)
         strike_delay, off_delay = -3, 0   # delay from the peak
         fre = 6
         estimated_strike_indexes, estimated_off_indexes = my_detector.get_walking_strike_off(strike_delay, off_delay, fre)
@@ -371,6 +377,32 @@ class DataInitializerHS:
         self._placement_offset = DataInitializerHS.init_placement_offset(sub_folder)
 
     def start_init(self):
+        if self.sub_folder not in SUB_TRIAL_NUM.keys():
+            self.start_init_normal_sub()
+        else:
+            self.start_init_trial_separated()
+
+    def start_init_trial_separated(self):
+        trial_id_order = 0
+        for trial_id_overall in SUB_AND_TRIALS_HS[self.sub_folder]:
+            trial_id_time = SUB_TRIAL_NUM[self.sub_folder][trial_id_order]
+            if self.sub_folder not in SUB_TRIAL_NAME_SPECIAL.keys():
+                sensor_file_name = self.sub_name + '_l_34_' + str(trial_id_time)
+            elif trial_id_time in SUB_TRIAL_NAME_SPECIAL[self.sub_folder].keys():
+                sensor_file_name = SUB_TRIAL_NAME_SPECIAL[self.sub_folder][trial_id_time]
+            else:
+                sensor_file_name = SUB_TRIAL_NAME_SPECIAL[self.sub_folder][-1]
+
+            sensor_data = self.init_sensor_data_sub(sensor_file_name)
+            sync_params = self.init_sync_point(trial_id_time-1)
+            force_data_df = self.init_force_data(trial_id_overall, sync_params)
+            sensor_data_df = self.init_sensor_data_trial(sensor_data, sync_params)
+            marker_data_df = self.init_marker_data(trial_id_overall, sync_params)
+            trial_data_df = pd.concat([force_data_df, marker_data_df, sensor_data_df], axis=1, join='inner')
+            self.save_trial_data(trial_data_df, trial_id_order)
+            trial_id_order += 1
+
+    def start_init_normal_sub(self):
         """
         trial_id_overall_min: For all subjects' trials, the trial id according to the experiment time.
         trial_id_time: For each subject's trials, the trial id according to the experiment time.
@@ -390,6 +422,7 @@ class DataInitializerHS:
             self.save_trial_data(trial_data_df, trial_id_order)
             trial_id_order += 1
 
+
     @staticmethod
     def init_placement_offset(sub_folder):
         # step 0, get shoe sizes
@@ -402,17 +435,30 @@ class DataInitializerHS:
         return placement_offset
 
     def init_force_data(self, trial_id_overall, sync_params):
-        data_path = DATA_PATH_HS + 'vicon/force/Trial' + str(trial_id_overall) + '.CSV'
+        if self.sub_folder in VICON_FOLDER_2_SUB:
+            data_path = DATA_PATH_HS + 'vicon/s1_8/force/Trial' + str(trial_id_overall) + '.CSV'
+        else:
+            data_path = DATA_PATH_HS + 'vicon/s9_14/force/Trial' + str(trial_id_overall) + '.CSV'
         force_data = pd.read_csv(data_path, index_col=False, skiprows=range(5), header=None,
                                  usecols=[0, 2, 3, 4])
         force_data.columns = ['vicon_frame', 'f_1_x', 'f_1_y', 'f_1_z']
-        force_data_clip = force_data.iloc[sync_params.vicon_sync_start:sync_params.vicon_sync_end, :]
+
+        # data filtering
+        force_data_filtered = StrikeOffDetectorIMU.data_filt(force_data.iloc[:, 1:], 20, HAISHENG_SENSOR_SAMPLE_RATE, 2)
+        force_data_filtered = pd.DataFrame(force_data_filtered)
+        force_data_filtered.columns = ['f_1_x', 'f_1_y', 'f_1_z']
+        force_data_filtered.insert(0, 'vicon_frame', force_data['vicon_frame'])
+
+        force_data_clip = force_data_filtered.iloc[sync_params.vicon_sync_start:sync_params.vicon_sync_end, :]
         force_data_clip = force_data_clip.reset_index(drop=True)
         return force_data_clip
 
     def save_trial_data(self, trial_data_df, trial_id_order):
-        save_path = DATA_PATH_HS + 'processed/' + self.sub_folder + '/' + TRIAL_NAMES_HS[trial_id_order] + '.csv'
-        trial_data_df.to_csv(save_path, index=False)
+        save_path = DATA_PATH_HS + 'processed/' + self.sub_folder
+        if not os.path.isdir(save_path):
+            os.makedirs(save_path)
+        save_file = save_path + '/' + TRIAL_NAMES_HS[trial_id_order] + '.csv'
+        trial_data_df.to_csv(save_file, index=False)
 
     @staticmethod
     def init_sensor_data_trial(sensor_data, sync_params):
@@ -425,6 +471,8 @@ class DataInitializerHS:
     def init_sync_point(self, i_th_trial):
         sync_params = SyncParams()
         sync_file_path = DATA_PATH_HS + 'syncpoint/' + self.sub_folder + '/L_34_' + str(i_th_trial+1) + '.docx'
+        if not os.path.isfile(sync_file_path):
+            sync_file_path = DATA_PATH_HS + 'syncpoint/' + self.sub_folder + '/34_L_' + str(i_th_trial+1) + '.docx'
         sync_str = str(textract.process(sync_file_path))
         sync_str_list = sync_str.split('\\n')
         sensor_sync_temp, vicon_sync_temp, walk_sync_temp = [], [], []
@@ -452,8 +500,10 @@ class DataInitializerHS:
         sync_params.walk_end_row = walk_sync_temp[1] - vicon_sync_temp[0]
         return sync_params
 
-    def init_sensor_data_sub(self):
-        data_path = DATA_PATH_HS + 'sensor/' + self.sub_folder + '/' + self.sub_name + '_l_34.CSV'
+    def init_sensor_data_sub(self, file_name=None):
+        if file_name is None:
+            file_name = self.sub_name + '_l_34'
+        data_path = DATA_PATH_HS + 'sensor/' + self.sub_folder + '/' + file_name + '.CSV'
         sensor_data_reader = HaishengSensorReaderNoInterpo(data_path)
         sensor_data_cols = ['sample'] + DATA_COLUMNS_IMU + ['FPA_tbme_average', 'FPA_tbme_raw']
         sensor_data_all = sensor_data_reader.data_raw_df[sensor_data_cols]
@@ -466,9 +516,10 @@ class DataInitializerHS:
         row_num = sync_params.vicon_sync_end - sync_params.vicon_sync_start
         data_array = np.zeros([row_num, 3 * len(MARKERS_HS)])
         marker_num = len(MARKERS_HS)
-
-        data_path = DATA_PATH_HS + 'vicon/c3d/Trial' + str(trial_id_overall) + '.c3d'
-
+        if self.sub_folder in VICON_FOLDER_2_SUB:
+            data_path = DATA_PATH_HS + 'vicon/s1_8/c3d/Trial' + str(trial_id_overall) + '.c3d'
+        else:
+            data_path = DATA_PATH_HS + 'vicon/s9_14/c3d/Trial' + str(trial_id_overall) + '.c3d'
         with open(data_path, 'rb') as handle:
             reader = c3d.Reader(handle)
             marker_names_c3d = reader.point_labels
@@ -482,9 +533,13 @@ class DataInitializerHS:
                     for i_marker in range(marker_num):
                         data_array[i_processed, i_marker*3:(1+i_marker)*3] = points[i_marker, :3]
         marker_column_names = [marker + axis for marker in MARKERS_HS for axis in ['_y', '_x', '_z']]
+
+        # Change the x-axis direction. The left foot x coordinate should be smaller than that of the right foot.
         data_array[:, 1] = 1120 - data_array[:, 1]
         data_array[:, 4] = 1120 - data_array[:, 4]
-        marker_data_df = pd.DataFrame(data_array, columns=marker_column_names)
+
+        data_array_filtered = StrikeOffDetectorIMU.data_filt(data_array, 15, HAISHENG_SENSOR_SAMPLE_RATE, 2)
+        marker_data_df = pd.DataFrame(data_array_filtered, columns=marker_column_names)
         marker_data_df = marker_data_df.reset_index(drop=True)
         return marker_data_df
 

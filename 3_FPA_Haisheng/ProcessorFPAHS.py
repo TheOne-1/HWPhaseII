@@ -27,6 +27,10 @@ class InitFPA:
         self.base_path = DATA_PATH_HS + 'processed/' + sub_folder + '/'
 
     def show_step_acc(self):
+        """
+        Show the average step. All the steps were interpolated to 50 samples.
+        :return:
+        """
         acc_ori_list, acc_rota_list, steps_list = [], [], []
         for trial_id in range(len(TRIAL_NAMES_HS)):
             print(TRIAL_NAMES_HS[trial_id])
@@ -81,6 +85,10 @@ class InitFPA:
         plt.show()
 
     def backward_fpa_estimation(self):
+        """
+
+        :return:
+        """
         fpa_true_list, fpa_esti_list = [], []
         for trial_id in range(len(TRIAL_NAMES_HS)):
             print(TRIAL_NAMES_HS[trial_id])
@@ -89,36 +97,16 @@ class InitFPA:
             gait_data_path = self.base_path + TRIAL_NAMES_HS[trial_id] + '.csv'
             gait_data_df = pd.read_csv(gait_data_path, index_col=False)
 
-            # # !!! delay tested, 3 samples
-            # acc = gait_data_df['gyr_x'].values
-            # b, a = butter(2, 6 / (HAISHENG_SENSOR_SAMPLE_RATE/2), 'low', analog=False)
-            # acc_filtered = lfilter(b, a, acc)
-            # plt.plot(acc)
-            # plt.plot(acc_filtered)
-            # plt.show()
-
             gait_param_path = self.base_path + 'param_of_' + TRIAL_NAMES_HS[trial_id] + '.csv'
             gait_param_df = pd.read_csv(gait_param_path, index_col=False)
-            output_data = gait_param_df['FPA_true'].values.reshape(-1, 1)
             steps, stance_phase_flag = self.initalize_steps_and_stance_phase(gait_param_df, stance_after_strike=10,
                                                                              stance_before_off=30)
-
-            # reverse the whole trial
-            stance_phase_flag = np.flip(stance_phase_flag)
-            output_data = np.flip(output_data)
-            gait_data_df = gait_data_df.iloc[::-1]
-            gait_data_df = gait_data_df.reset_index(drop=True)
-
-            gait_data_df[['gyr_x', 'gyr_y', 'gyr_z']] = -gait_data_df[['gyr_x', 'gyr_y', 'gyr_z']]
-
-            data_len = gait_param_df.shape[0]
-            steps = [[data_len - step[1], data_len - step[0]] for step in steps]
-
-            euler_angles_esti = self.get_complementary_filtered_euler_angles(
-                gait_data_df, stance_phase_flag, base_correction_coeff=0.2)
-
+            euler_angles_esti = self.get_euler_angles_gradient_decent_from_stance(
+                gait_data_df, stance_phase_flag, base_correction_coeff=0.02)
             euler_angles_esti_1 = self.get_euler_angles_gradient_decent(
                 gait_data_df, stance_phase_flag, base_correction_coeff=0.02)
+
+            output_data = gait_param_df['FPA_true'].values.reshape(-1, 1)
 
             # plt.figure()
             # plt.plot(euler_angles_esti[:, 0])
@@ -128,13 +116,12 @@ class InitFPA:
             # plt.plot(euler_angles_esti_1[:, 1])
             # plt.show()
 
-            acc_ori = gait_data_df[['acc_x', 'acc_y', 'acc_z']].values
             acc_IMU_rotated = self.get_rotated_acc(gait_data_df, euler_angles_esti, acc_cut_off_fre=None)
-            FPA_estis = self.get_FPA_via_acc_sum_ratio_backward(acc_IMU_rotated, steps, win_before_off=20, win_after_off=50)
+            FPA_estis = self.get_FPA_via_acc_sum_ratio_backward(acc_IMU_rotated, steps, win_before_off=50, win_after_off=20)
             # FPA_estis = gait_param_df['FPA_tbme'].values
             fpa_true_temp, fpa_esti_temp = ProcessorFPA.compare_result(FPA_estis, output_data, steps)
-            fpa_true_list.extend(fpa_true_temp[20:-20])
-            fpa_esti_list.extend(fpa_esti_temp[20:-20])
+            fpa_true_list.extend(fpa_true_temp[5:-5])
+            fpa_esti_list.extend(fpa_esti_temp[5:-5])
 
         plt.figure()
         fpa_true_array, fpa_esti_array = np.array(fpa_true_list), np.array(fpa_esti_list)
@@ -456,13 +443,13 @@ class InitFPA:
             FPA_estis[the_sample] = the_FPA_esti
         return FPA_estis
 
-    def get_FPA_via_acc_sum_ratio_backward(self, acc_IMU_rotated, steps, win_before_off=30, win_after_off=70):
+    def get_FPA_via_acc_sum_ratio_backward(self, acc_IMU_rotated, steps, win_before_off, win_after_off):
         """For backward"""
         data_len = acc_IMU_rotated.shape[0]
         FPA_estis = np.zeros([data_len])
         for step in steps:
-            acc_clip = acc_IMU_rotated[step[1] - win_before_off:step[1] + win_after_off, 0:2]
-            acc_sum = np.sum(acc_clip[0:40], axis=0)
+            acc_clip = acc_IMU_rotated[step[0] - win_before_off:step[0] + win_after_off, 0:2]
+            acc_sum = np.sum(acc_clip[35:55], axis=0)
 
             # plt.plot(acc_clip[:, 1])
 
