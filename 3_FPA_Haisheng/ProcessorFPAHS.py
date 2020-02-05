@@ -15,7 +15,7 @@ from Processor import Processor
 
 
 class InitFPA:
-    def __init__(self, sub_folder):
+    def __init__(self, sub_folder, test_date):
         self.sub_folder = sub_folder
         self.sub_name = sub_folder.split('_')[-1]
         self._placement_offset = DataInitializerHS.init_placement_offset(sub_folder)
@@ -25,6 +25,7 @@ class InitFPA:
             [-sin(offset_rad), cos(offset_rad), 0],
             [0, 0, 1]])
         self.base_path = DATA_PATH_HS + 'processed/' + sub_folder + '/'
+        self.test_date = test_date
 
     def show_step_acc(self):
         """
@@ -89,6 +90,60 @@ class InitFPA:
         :return:
         """
         fpa_true_list, fpa_esti_list = [], []
+        step_result_df, sub_result_summary_df = pd.DataFrame(), pd.DataFrame()
+        for trial_id in range(len(TRIAL_NAMES_HS)):
+            print(TRIAL_NAMES_HS[trial_id])
+            self.current_trial = TRIAL_NAMES_HS[trial_id]
+
+            gait_data_path = self.base_path + TRIAL_NAMES_HS[trial_id] + '.csv'
+            gait_data_df = pd.read_csv(gait_data_path, index_col=False)
+
+            gait_param_path = self.base_path + 'param_of_' + TRIAL_NAMES_HS[trial_id] + '.csv'
+            gait_param_df = pd.read_csv(gait_param_path, index_col=False)
+            steps, stance_phase_flag = self.initalize_steps_and_stance_phase(gait_param_df, stance_after_strike=10,
+                                                                             stance_before_off=30)
+            euler_angles_esti = self.get_euler_angles_gradient_decent_from_stance(
+                gait_data_df, stance_phase_flag, base_correction_coeff=0.02)
+            euler_angles_esti_1 = self.get_euler_angles_gradient_decent(
+                gait_data_df, stance_phase_flag, base_correction_coeff=0.02)
+
+            output_data = gait_param_df['FPA_true'].values.reshape(-1, 1)
+
+            # plt.figure()
+            # plt.plot(euler_angles_esti[:, 0])
+            # plt.plot(euler_angles_esti_1[:, 0])
+            # plt.figure()
+            # plt.plot(euler_angles_esti[:, 1])
+            # plt.plot(euler_angles_esti_1[:, 1])
+            # plt.show()
+
+            acc_IMU_rotated = self.get_rotated_acc(gait_data_df, euler_angles_esti, acc_cut_off_fre=None)
+            FPA_estis = self.get_FPA_via_acc_before_strike_ratio(acc_IMU_rotated, steps, win_before_off=50, win_after_off=20)
+            # FPA_estis = gait_param_df['FPA_tbme'].values
+            fpa_true_temp, fpa_esti_temp = ProcessorFPA.compare_result(FPA_estis, output_data, steps)
+            fpa_true_list.extend(fpa_true_temp[3:-3])
+            fpa_esti_list.extend(fpa_esti_temp[3:-3])
+        self.plot_sub_result(fpa_true_list, fpa_esti_list)
+        pearson_coeff, RMSE, mean_error = Evaluation._get_all_scores(
+            np.array(fpa_true_list), np.array(fpa_esti_list), precision=3)
+        sub_result_summary_df = Evaluation.insert_prediction_result(
+            sub_result_summary_df, self.sub_folder, pearson_coeff, RMSE, mean_error)
+
+        # save the sub result
+
+    def plot_sub_result(self, fpa_true_list, fpa_esti_list):
+        # show the sub result
+        plt.figure()
+        fpa_true_array, fpa_esti_array = np.array(fpa_true_list), np.array(fpa_esti_list)
+        plt.plot(fpa_true_array, fpa_esti_array, '.')
+        plt.plot([-20, 60], [-20, 60], 'black')
+        correlation_coeff, RMSE, mean_error = Evaluation._get_all_scores(fpa_true_array, fpa_esti_array, precision=2)
+        plt.title(self.sub_folder + '   RMSE: ' + str(RMSE[0]) + '   mean error: ' + str(mean_error))
+
+
+    def param_optimizer(self):
+        # param_range = range(-20, 20)
+        predict_result_df = pd.DataFrame()
         for trial_id in range(len(TRIAL_NAMES_HS)):
             print(TRIAL_NAMES_HS[trial_id])
             self.current_trial = TRIAL_NAMES_HS[trial_id]
@@ -127,12 +182,9 @@ class InitFPA:
             # plt.plot([-20, 60], [-20, 60], 'black')
             # plt.show()
 
-        plt.figure()
-        fpa_true_array, fpa_esti_array = np.array(fpa_true_list), np.array(fpa_esti_list)
-        plt.plot(fpa_true_array, fpa_esti_array, '.')
-        plt.plot([-20, 60], [-20, 60], 'black')
-        correlation_coeff, RMSE, mean_error = Evaluation._get_all_scores(fpa_true_array, fpa_esti_array, precision=2)
-        plt.title(self.sub_folder + '   RMSE: ' + str(RMSE[0]) + '   mean error: ' + str(mean_error))
+
+        self.plot_sub_result(fpa_true_list, fpa_esti_list)
+
 
     @staticmethod
     def get_euler_angles_gradient_decent_from_stance(gait_data_df, stance_phase_flag, base_correction_coeff=0.01):
@@ -242,40 +294,6 @@ class InitFPA:
 
         return euler_angles_esti
 
-    def forward_fpa_estimation(self):
-        base_path = DATA_PATH_HS + 'processed/' + self.sub_folder + '/'
-        fpa_true_list, fpa_esti_list = [], []
-        for trial_id in range(len(TRIAL_NAMES_HS)):
-            print(TRIAL_NAMES_HS[trial_id])
-            self.current_trial = TRIAL_NAMES_HS[trial_id]
-
-            plt.figure()
-            plt.title(self.current_trial)
-
-            gait_data_path = base_path + TRIAL_NAMES_HS[trial_id] + '.csv'
-            gait_data_df = pd.read_csv(gait_data_path, index_col=False)
-
-            gait_param_path = base_path + 'param_of_' + TRIAL_NAMES_HS[trial_id] + '.csv'
-            gait_param_df = pd.read_csv(gait_param_path, index_col=False)
-            output_data = gait_param_df['FPA_true'].values.reshape(-1, 1)
-            steps, stance_phase_flag = self.initalize_steps_and_stance_phase(gait_param_df)
-
-            euler_angles_esti = self.get_complementary_filtered_euler_angles(
-                gait_data_df, stance_phase_flag, cut_off_fre=6)
-            # acc_IMU_rotated = self.get_rotated_acc_new_filter(gait_data_df, euler_angles_esti)
-            acc_IMU_rotated = self.get_rotated_acc(gait_data_df, euler_angles_esti, acc_cut_off_fre=20)
-            FPA_estis = self.get_FPA_via_acc_sum_ratio(acc_IMU_rotated, steps)
-            # FPA_estis = gait_param_df['FPA_tbme'].values
-            fpa_true_temp, fpa_esti_temp = ProcessorFPA.compare_result(FPA_estis, output_data, steps)
-            fpa_true_list.extend(fpa_true_temp[20:-20])
-            fpa_esti_list.extend(fpa_esti_temp[20:-20])
-            print(np.mean(fpa_true_temp[20:-20]))
-
-        plt.figure()
-        plt.plot(fpa_true_list, fpa_esti_list, '.')
-        plt.plot([-20, 60], [-20, 60], 'black')
-        plt.title('FPA via new acc ratio')
-
     def get_rotated_acc(self, gait_data_df, euler_angles, acc_cut_off_fre=None):
         acc_IMU = gait_data_df[['acc_x', 'acc_y', 'acc_z']].values
         if acc_cut_off_fre is not None:
@@ -354,136 +372,14 @@ class InitFPA:
                 abandoned_step_num += 1
         return steps, stance_phase_flag
 
-    def get_FPA_via_displacement_ratio(self, acc_IMU_rotated, steps, win_before_off=30, win_after_off=80):
-        """Do integration till speed peak"""
-        data_len = acc_IMU_rotated.shape[0]
-        FPA_estis = np.zeros([data_len])
-        delta_t = 1 / HAISHENG_SENSOR_SAMPLE_RATE
-        for step in steps:
-            acc_x_clip = acc_IMU_rotated[step[1] - win_before_off:step[1] + win_after_off, 0]
-            acc_y_clip = acc_IMU_rotated[step[1] - win_before_off:step[1] + win_after_off, 1]
-            speed_x, speed_y = np.zeros(acc_x_clip.shape), np.zeros(acc_y_clip.shape)
-            disp_x, disp_y = np.zeros(acc_x_clip.shape), np.zeros(acc_y_clip.shape)
-            for i_sample in range(acc_x_clip.shape[0]):
-                speed_x[i_sample] = speed_x[i_sample - 1] + acc_x_clip[i_sample] * delta_t
-                speed_y[i_sample] = speed_y[i_sample - 1] + acc_y_clip[i_sample] * delta_t
-                disp_x[i_sample] = disp_x[i_sample - 1] + delta_t * (speed_x[i_sample] + speed_x[i_sample - 1]) / 2
-                disp_y[i_sample] = disp_y[i_sample - 1] + delta_t * (speed_y[i_sample] + speed_y[i_sample - 1]) / 2
-            speed_peak_y_index = np.argmax(speed_y)
-
-            if 5000 < step[1] < 5150:
-                # plt.figure()
-                # plt.plot(acc_x_clip)
-                # plt.plot(acc_y_clip)
-                plt.figure()
-                plt.plot(speed_x)
-                plt.plot(speed_y)
-                plt.title(self.current_trial)
-                # plt.figure()
-                # plt.plot(disp_x)
-                # plt.plot(disp_y)
-                # plt.show()
-
-            the_FPA_esti = np.arctan2(disp_x[speed_peak_y_index], disp_y[speed_peak_y_index]) * 180 / np.pi
-            the_sample = int((step[0] + step[1]) / 2)
-            FPA_estis[the_sample] = the_FPA_esti
-        return FPA_estis
-
-    def get_FPA_via_speed_ratio_till_peak(self, acc_IMU_rotated, steps, win_before_off=30, win_after_off=40):
-        """Do integration till peak of each axis"""
-        data_len = acc_IMU_rotated.shape[0]
-        FPA_estis = np.zeros([data_len])
-        delta_t = 1 / HAISHENG_SENSOR_SAMPLE_RATE
-        for step in steps:
-            acc_clip = acc_IMU_rotated[step[1] - win_before_off:step[1] + win_after_off, 0:2]
-            speed_clip = np.zeros(acc_clip.shape)
-            disp_clip = np.zeros(acc_clip.shape)
-            for i_sample in range(acc_clip.shape[0]):
-                speed_clip[i_sample] = speed_clip[i_sample - 1] + acc_clip[i_sample] * delta_t
-                disp_clip[i_sample] = disp_clip[i_sample - 1] + delta_t * (
-                            speed_clip[i_sample] + speed_clip[i_sample - 1]) / 2
-            speed_peak_x, speed_peak_y = np.argmax(speed_clip[:, 0]), np.argmax(speed_clip[:, 1])
-
-            if 5600 < step[1] < 5900:
-                plt.figure()
-                plt.plot(acc_clip)
-                plt.plot(speed_peak_x, acc_clip[speed_peak_x, 0], 'r*')
-                plt.plot(speed_peak_y, acc_clip[speed_peak_y, 1], 'r*')
-                plt.title(self.current_trial)
-                # plt.figure()
-                # plt.plot(disp_clip)
-                # plt.plot(speed_peak_x, disp_clip[speed_peak_x, 0], 'r*')
-                # plt.plot(speed_peak_y, disp_clip[speed_peak_y, 1], 'r*')
-                # plt.title(self.current_trial)
-
-            the_FPA_esti = np.arctan2(speed_clip[speed_peak_x, 0], speed_clip[speed_peak_y, 1]) * 180 / np.pi
-            the_sample = int((step[0] + step[1]) / 2)
-            FPA_estis[the_sample] = the_FPA_esti
-        return FPA_estis
-
-    def get_FPA_via_acc_sum_ratio(self, acc_IMU_rotated, steps, win_before_off=30, win_after_off=70):
-        """For forward"""
-        data_len = acc_IMU_rotated.shape[0]
-        FPA_estis = np.zeros([data_len])
-        for step in steps:
-            acc_clip = acc_IMU_rotated[step[1] - win_before_off:step[1] + win_after_off, 0:2]
-            # sum_ends = np.where(acc_clip[:, 1] < -10)[0]
-            # if len(sum_ends) == 0:
-            #     sum_end = win_after_off + win_before_off
-            #     print('no value < -10')
-            # else:
-            #     sum_end = sum_ends[0]
-            # sum_end = sum_end - 20
-            acc_sum = np.sum(acc_clip[45:90], axis=0)
-
-            plt.plot(acc_clip[:, 0])
-
-            the_FPA_esti = np.arctan2(-acc_sum[0], -acc_sum[1]) * 180 / np.pi
-            the_sample = int((step[0] + step[1]) / 2)
-            FPA_estis[the_sample] = the_FPA_esti
-        return FPA_estis
-
     def get_FPA_via_acc_before_strike_ratio(self, acc_IMU_rotated, steps, win_before_off, win_after_off):
-        """For backward"""
+        """Use the acc ratio before heel strike to calculate FPA"""
         data_len = acc_IMU_rotated.shape[0]
         FPA_estis = np.zeros([data_len])
         for step in steps:
             acc_clip = acc_IMU_rotated[step[0] - win_before_off:step[0] + win_after_off, 0:2]
             acc_sum = np.sum(acc_clip[35:55], axis=0)
-
-            # plt.plot(acc_clip[:, 1])
-
             the_FPA_esti = np.arctan2(-acc_sum[0], -acc_sum[1]) * 180 / np.pi
-
-            if abs(the_FPA_esti) > 80:
-                x = 1
-
-            the_sample = int((step[0] + step[1]) / 2)
-            FPA_estis[the_sample] = the_FPA_esti
-        return FPA_estis
-
-    def get_FPA_via_displacement_ratio_new(self, acc_IMU_rotated, steps, win_before_off=60, win_after_off=100):
-        """Do integration of the whole step"""
-        data_len = acc_IMU_rotated.shape[0]
-        FPA_estis = np.zeros([data_len])
-        delta_t = 1 / HAISHENG_SENSOR_SAMPLE_RATE
-        for i_step in range(1, len(steps) - 1):
-            the_last_step = steps[i_step - 1]
-            step = steps[i_step]
-            the_next_step = steps[i_step + 1]
-            acc_x_clip = np.concatenate([acc_IMU_rotated[the_last_step[1] - win_before_off:step[0], 0],
-                                         acc_IMU_rotated[step[1] - win_before_off:the_next_step[0], 0]])
-            acc_y_clip = np.concatenate([acc_IMU_rotated[the_last_step[1] - win_before_off:step[0], 1],
-                                         acc_IMU_rotated[step[1] - win_before_off:the_next_step[0], 1]])
-            speed_x, speed_y = np.zeros(acc_x_clip.shape), np.zeros(acc_y_clip.shape)
-            disp_x, disp_y = np.zeros(acc_x_clip.shape), np.zeros(acc_y_clip.shape)
-            for i_sample in range(acc_x_clip.shape[0]):
-                speed_x[i_sample] = speed_x[i_sample - 1] + acc_x_clip[i_sample] * delta_t
-                speed_y[i_sample] = speed_y[i_sample - 1] + acc_y_clip[i_sample] * delta_t
-                disp_x[i_sample] = disp_x[i_sample - 1] + delta_t * (speed_x[i_sample] + speed_x[i_sample - 1]) / 2
-                disp_y[i_sample] = disp_y[i_sample - 1] + delta_t * (speed_y[i_sample] + speed_y[i_sample - 1]) / 2
-
-            the_FPA_esti = np.arctan2(disp_x[-1], disp_y[-1]) * 180 / np.pi
             the_sample = int((step[0] + step[1]) / 2)
             FPA_estis[the_sample] = the_FPA_esti
         return FPA_estis
