@@ -45,25 +45,35 @@ class StrikeOffDetectorIMUHS(StrikeOffDetectorIMU):
         plt.figure()
         plt.title(self._trial_name + '   gyr_x')
         plt.plot(gyr_x)
-        strike_plt_handle = plt.plot(true_strike_indexes, gyr_x[true_strike_indexes], 'g*')
-        off_plt_handle = plt.plot(true_off_indexes, gyr_x[true_off_indexes], 'gx')
+        strike_plt_handle = plt.plot(true_strike_indexes, gyr_x[true_strike_indexes], 'g*', markersize=11)
+        off_plt_handle = plt.plot(true_off_indexes, gyr_x[true_off_indexes], 'gx', markersize=11)
         strike_plt_handle_esti = plt.plot(estimated_strike_indexes, gyr_x[estimated_strike_indexes], 'r*')
         off_plt_handle_esti = plt.plot(estimated_off_indexes, gyr_x[estimated_off_indexes], 'rx')
         plt.grid()
         plt.legend([strike_plt_handle[0], off_plt_handle[0], strike_plt_handle_esti[0], off_plt_handle_esti[0]],
                    ['true_strikes', 'true_offs', 'estimated_strikes', 'estimated_offs'])
 
-    def find_peak_max(self, data_clip, height, width=None, prominence=None):
+    def find_peak_after_stance(self, data_clip, height, width=None, prominence=None):
         """
         find the maximum peak
         :return:
         """
         peaks, properties = signal.find_peaks(data_clip, width=width, height=height, prominence=prominence)
-        if len(peaks) == 0:
-            return None
-        peak_heights = properties['peak_heights']
-        max_index = np.argmax(peak_heights)
-        return peaks[max_index]
+
+        stance_check_win = 10
+        stance_thd = 1
+
+        peaks_after_stance = []
+        for peak in peaks:
+            find_stance_start = max(stance_check_win, peak - 40)
+            for i_sample in range(find_stance_start, peak):
+                if all(abs(data_clip[i_sample-stance_check_win:i_sample]) < stance_thd):
+                    peaks_after_stance.append(peak)
+                    break
+
+        # if len(peaks_after_stance) == 0:
+        #     return None
+        return peaks_after_stance
 
     @staticmethod
     def data_filt_left(data, cut_off_fre, sampling_fre, filter_order=2):
@@ -76,6 +86,8 @@ class StrikeOffDetectorIMUHS(StrikeOffDetectorIMU):
         return data_filt
 
     def get_walking_strike_off(self, strike_delay, off_delay, cut_off_fre_strike_off=6):
+        strike_gyr_thd = 0
+        strike_gyr_prominence = 0.1
         off_gyr_thd = 2  # threshold the minimum peak of medio-lateral heel strike
         off_gyr_prominence = 2
 
@@ -93,10 +105,11 @@ class StrikeOffDetectorIMUHS(StrikeOffDetectorIMU):
             clip_start = i_clip * clip_len + start_buffer
             clip_end = (i_clip + 1) * clip_len + start_buffer
 
-            max_peak_index = self.find_peak_max(gyr_x[clip_start:clip_end], height=off_gyr_thd,
-                                                prominence=off_gyr_prominence)
-            if max_peak_index is not None:
-                last_off = max_peak_index + off_delay + i_clip * clip_len + start_buffer
+            peaks_after_stance = self.find_peak_after_stance(gyr_x[clip_start:clip_end], height=off_gyr_thd,
+                                                         prominence=off_gyr_prominence)
+            if len(peaks_after_stance) != 0:
+                last_off = peaks_after_stance[0] + off_delay + i_clip * clip_len + start_buffer
+                off_list.append(last_off)
                 break
         if 'last_off' not in locals():
             raise ValueError('First off not found.')
@@ -111,15 +124,12 @@ class StrikeOffDetectorIMUHS(StrikeOffDetectorIMU):
         for i_sample in range(last_off+1, data_len):
             if i_sample - last_off > check_win_len:
                 try:
-                    peaks, properties = find_peaks(gyr_x[last_off:i_sample], height=off_gyr_thd, prominence=off_gyr_prominence)
+                    peaks, _ = find_peaks(gyr_x[last_off:i_sample], height=strike_gyr_thd, prominence=strike_gyr_prominence)
+                    peaks_after_stance = self.find_peak_after_stance(gyr_x[last_off:i_sample], height=off_gyr_thd,
+                                                                     prominence=off_gyr_prominence)
 
-                    peak_heights = properties['peak_heights']
-                    first_peak = peaks[0]
-                    max_index = np.argmax(peak_heights)
-                    highest_peak = peaks[max_index]
-
-                    strike_list.append(first_peak + last_off + strike_delay)
-                    off_list.append(highest_peak + last_off + off_delay)
+                    strike_list.append(peaks[0] + last_off + strike_delay)
+                    off_list.append(peaks_after_stance[0] + last_off + off_delay)
                     last_off = off_list[-1]
                 except IndexError as e:
                     if 2e3 < i_sample < 1e4:

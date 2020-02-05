@@ -76,8 +76,7 @@ class InitFPA:
                 last_off = steps[i_step][1]
                 current_strike = steps[i_step + 1][0]
                 acc_ori_step_array[i_step - 3, :] = Processor.resample_channel(acc_ori[last_off:current_strike, 0], 50)
-                acc_rota_step_array[i_step - 3, :] = Processor.resample_channel(acc_rota[last_off:current_strike, 0],
-                                                                                50)
+                acc_rota_step_array[i_step - 3, :] = Processor.resample_channel(acc_rota[last_off:current_strike, 0], 50)
 
             plt.plot(np.mean(acc_ori_step_array, axis=0))
             plt.plot(np.mean(acc_rota_step_array, axis=0))
@@ -117,11 +116,16 @@ class InitFPA:
             # plt.show()
 
             acc_IMU_rotated = self.get_rotated_acc(gait_data_df, euler_angles_esti, acc_cut_off_fre=None)
-            FPA_estis = self.get_FPA_via_acc_sum_ratio_backward(acc_IMU_rotated, steps, win_before_off=50, win_after_off=20)
+            FPA_estis = self.get_FPA_via_acc_before_strike_ratio(acc_IMU_rotated, steps, win_before_off=50, win_after_off=20)
             # FPA_estis = gait_param_df['FPA_tbme'].values
             fpa_true_temp, fpa_esti_temp = ProcessorFPA.compare_result(FPA_estis, output_data, steps)
             fpa_true_list.extend(fpa_true_temp[5:-5])
             fpa_esti_list.extend(fpa_esti_temp[5:-5])
+
+            # plt.figure()
+            # plt.plot(fpa_true_temp[5:-5], fpa_esti_temp[5:-5], '.')
+            # plt.plot([-20, 60], [-20, 60], 'black')
+            # plt.show()
 
         plt.figure()
         fpa_true_array, fpa_esti_array = np.array(fpa_true_list), np.array(fpa_esti_list)
@@ -132,65 +136,61 @@ class InitFPA:
 
     @staticmethod
     def get_euler_angles_gradient_decent_from_stance(gait_data_df, stance_phase_flag, base_correction_coeff=0.01):
-        # correct the orientation backwards from the end of each stance phase
+        """
+        start initialization from the end of each stance phase
+        :return:
+        """
         delta_t = 1 / HAISHENG_SENSOR_SAMPLE_RATE
 
         acc_IMU = gait_data_df[['acc_x', 'acc_y', 'acc_z']].values
         gyr_IMU = gait_data_df[['gyr_x', 'gyr_y', 'gyr_z']].values
-        # gyr_IMU_negative = - gyr_IMU
         data_len = gait_data_df.shape[0]
 
+        # gyr_IMU_moved = np.zeros(gyr_IMU.shape)
+        # gyr_IMU_moved[:-1, :] = gyr_IMU[1:, :]
         angle_augments = gyr_IMU * delta_t
         euler_angles_esti = np.zeros([data_len, 3])
 
-        """1. Initialize the first stance"""
-        init_start, euler_angles_esti = ProcessorFPA.find_first_stance(
-            stance_phase_flag, gait_data_df[['acc_x', 'acc_y', 'acc_z']].values, euler_angles_esti)
-        while stance_phase_flag[init_start+1]:
-            init_start += 1
+        last_stance_end = 0     # the end of gyr integration
 
-        """2. Initialize the using gyr integration"""
-        for i_sample in range(init_start + 1, data_len):
-            euler_angles_esti[i_sample, :] = euler_angles_esti[i_sample - 1, :] + angle_augments[i_sample, :]
+        for i_sample in range(data_len):
+            """1. initialize at the end of stance phase"""
+            if stance_phase_flag[i_sample] and not stance_phase_flag[i_sample+1]:
+                gravity_vector = acc_IMU[i_sample, :]
+                gravity_vector_norm = norm(gravity_vector)
+                euler_angles_esti[i_sample, 0] = np.arcsin(gravity_vector[1] / gravity_vector_norm)  # axis 0
+                euler_angles_esti[i_sample, 1] = - np.arcsin(gravity_vector[0] / gravity_vector_norm)  # axis 1
 
-            """3. at the end of each stance, go back to correct the orientation of stance phase"""
-            if stance_phase_flag[i_sample-1] and not stance_phase_flag[i_sample]:
-                j_sample = i_sample - 1
-                while stance_phase_flag[j_sample]:
-                    euler_angles_esti[j_sample, :] = euler_angles_esti[j_sample+1, :] - angle_augments[j_sample, :]
+                """2. Gyr integration"""
+                for j_sample in range(i_sample, last_stance_end, -1):
+                    euler_angles_esti[j_sample-1, :] = euler_angles_esti[j_sample, :] - angle_augments[j_sample, :]
 
-                    acc_IMU_unified = acc_IMU[j_sample, :] / norm(acc_IMU[j_sample, :])
-                    r = euler_angles_esti[j_sample, 0]
-                    p = euler_angles_esti[j_sample, 1]
-                    jacob = np.array([[0, -cos(p)],
-                                      [cos(r) * cos(p), -sin(r) * sin(p)],
-                                      [-sin(r) * cos(p), -cos(r) * sin(p)]])
-                    f = np.array([[-sin(p) - acc_IMU_unified[0]],
-                                  [sin(r) * cos(p) - acc_IMU_unified[1]],
-                                  [cos(r) * cos(p) - acc_IMU_unified[2]]])
-                    delta_f = np.matmul(jacob.T, f)
-                    delta_f_normed = delta_f / norm(delta_f)
-                    modi_coeff_dim_0 = p + np.arcsin(acc_IMU_unified[0])
-                    if abs(acc_IMU_unified[1] / cos(p)) < 1:
-                        modi_coeff_dim_1 = r - np.arcsin(acc_IMU_unified[1] / cos(p))
-                    else:
-                        modi_coeff_dim_1 = r - np.arcsin(acc_IMU_unified[1])
-                    max_step = np.sqrt(modi_coeff_dim_0 ** 2 + modi_coeff_dim_1 ** 2)
-                    if max_step > base_correction_coeff:
-                        correction_coeff = base_correction_coeff
-                    else:
-                        correction_coeff = max_step
-                    euler_angles_esti[j_sample, :2] = euler_angles_esti[j_sample, :2] - correction_coeff * delta_f_normed.T
-                    j_sample -= 1
+                    """3. If j_sample is still stance phase"""
+                    if stance_phase_flag[j_sample]:
 
-                """4. shift the angle of last swing phase"""
-                euler_angles_shift = (euler_angles_esti[j_sample+1, :] - angle_augments[j_sample+1, :]) - euler_angles_esti[j_sample, :]
-                stance_start = j_sample+1
-                while not stance_phase_flag[j_sample]:
-                    euler_angles_esti[j_sample] = euler_angles_esti[j_sample] + euler_angles_shift
-                    j_sample -= 1
-                """5. change the first sample of the next swing phase"""
-                euler_angles_esti[i_sample, :] = euler_angles_esti[stance_start, :]
+                        acc_IMU_unified = acc_IMU[j_sample, :] / norm(acc_IMU[j_sample, :])
+                        r = euler_angles_esti[j_sample, 0]
+                        p = euler_angles_esti[j_sample, 1]
+                        jacob = np.array([[0, -cos(p)],
+                                          [cos(r) * cos(p), -sin(r) * sin(p)],
+                                          [-sin(r) * cos(p), -cos(r) * sin(p)]])
+                        f = np.array([[-sin(p) - acc_IMU_unified[0]],
+                                      [sin(r) * cos(p) - acc_IMU_unified[1]],
+                                      [cos(r) * cos(p) - acc_IMU_unified[2]]])
+                        delta_f = np.matmul(jacob.T, f)
+                        delta_f_normed = delta_f / norm(delta_f)
+                        modi_coeff_dim_0 = p + np.arcsin(acc_IMU_unified[0])
+                        if abs(acc_IMU_unified[1] / cos(p)) < 1:
+                            modi_coeff_dim_1 = r - np.arcsin(acc_IMU_unified[1] / cos(p))
+                        else:
+                            modi_coeff_dim_1 = r - np.arcsin(acc_IMU_unified[1])
+                        max_step = np.sqrt(modi_coeff_dim_0 ** 2 + modi_coeff_dim_1 ** 2)
+                        if max_step > base_correction_coeff:
+                            correction_coeff = base_correction_coeff
+                        else:
+                            correction_coeff = max_step
+                        euler_angles_esti[j_sample, :2] = euler_angles_esti[j_sample, :2] - correction_coeff * delta_f_normed.T
+                last_stance_end = i_sample
         return euler_angles_esti
 
     @staticmethod
@@ -443,7 +443,7 @@ class InitFPA:
             FPA_estis[the_sample] = the_FPA_esti
         return FPA_estis
 
-    def get_FPA_via_acc_sum_ratio_backward(self, acc_IMU_rotated, steps, win_before_off, win_after_off):
+    def get_FPA_via_acc_before_strike_ratio(self, acc_IMU_rotated, steps, win_before_off, win_after_off):
         """For backward"""
         data_len = acc_IMU_rotated.shape[0]
         FPA_estis = np.zeros([data_len])
@@ -454,6 +454,10 @@ class InitFPA:
             # plt.plot(acc_clip[:, 1])
 
             the_FPA_esti = np.arctan2(-acc_sum[0], -acc_sum[1]) * 180 / np.pi
+
+            if abs(the_FPA_esti) > 80:
+                x = 1
+
             the_sample = int((step[0] + step[1]) / 2)
             FPA_estis[the_sample] = the_FPA_esti
         return FPA_estis
