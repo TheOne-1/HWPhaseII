@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from const import DATA_PATH_HS, SUB_AND_TRIALS_HS, DATA_COLUMNS_IMU, MARKERS_HS, SUB_SELECTED_SPEEDS, \
-    TRIAL_NAMES_HS, HAISHENG_SENSOR_SAMPLE_RATE, COLUMN_NAMES_HAISHENG
+    TRIAL_NAMES_HS, HAISHENG_SENSOR_SAMPLE_RATE, COLUMN_NAMES_HAISHENG, SUB_NAMES_HS
 from numpy.linalg import norm
 from StrikeOffDetectorIMU import StrikeOffDetectorIMU
 from numpy import cos, sin
@@ -12,10 +12,47 @@ from DataProcessorHS import DataInitializerHS
 from Evaluation import Evaluation
 from scipy.signal import butter, lfilter
 from Processor import Processor
+import os
 
 
 class InitFPA:
-    def __init__(self, sub_folder, test_date):
+    def __init__(self, test_date):
+        self.test_date = test_date
+        self.sub_folder = None
+        self.sub_name = None
+        self._placement_offset = None
+        self._placement_R_foot_sensor = None
+        self.base_path = None
+
+    def start_init(self):
+        step_result_df = pd.DataFrame(columns=['sub_name', 'trial_id', 'FPA_true', 'FPA_estis', 'FPA_tbme'])
+        summary_result_df = pd.DataFrame()
+        for i_sub in range(len(SUB_NAMES_HS)):
+            sub_folder = SUB_NAMES_HS[i_sub]
+            self.init_sub_info(sub_folder)
+            step_result_df, summary_result_df = self.backward_fpa_estimation(step_result_df, summary_result_df)
+        summary_result_df = self.format_result_summary(summary_result_df)
+        self.save_result_df('../3_FPA_Haisheng/result_conclusion/step_result/step_result', step_result_df)
+        self.save_result_df('../3_FPA_Haisheng/result_conclusion/summary/summary_result', summary_result_df)
+
+    @staticmethod
+    def format_result_summary(summary_result_df):
+        summary_result_df.columns = ['sub_name', 'correlation', 'RMSE', 'mean_error']
+        summary_result_df.loc[-1] = ['absolute mean', np.mean(summary_result_df['correlation']),
+                                     np.mean(summary_result_df['RMSE']),
+                                     np.mean(abs(summary_result_df['mean_error']))]
+        return summary_result_df
+
+    @staticmethod
+    def save_result_df(base_path, predict_result_df):
+        file_path = base_path + '.csv'
+        i_file = 0
+        while os.path.isfile(file_path):
+            i_file += 1
+            file_path = base_path + '_' + str(i_file) + '.csv'
+        predict_result_df.to_csv(file_path, index=False)
+
+    def init_sub_info(self, sub_folder):
         self.sub_folder = sub_folder
         self.sub_name = sub_folder.split('_')[-1]
         self._placement_offset = DataInitializerHS.init_placement_offset(sub_folder)
@@ -25,7 +62,6 @@ class InitFPA:
             [-sin(offset_rad), cos(offset_rad), 0],
             [0, 0, 1]])
         self.base_path = DATA_PATH_HS + 'processed/' + sub_folder + '/'
-        self.test_date = test_date
 
     def show_step_acc(self):
         """
@@ -84,13 +120,8 @@ class InitFPA:
 
         plt.show()
 
-    def backward_fpa_estimation(self):
-        """
-
-        :return:
-        """
+    def backward_fpa_estimation(self, step_result_df, summary_result_df):
         fpa_true_list, fpa_esti_list = [], []
-        step_result_df, sub_result_summary_df = pd.DataFrame(), pd.DataFrame()
         for trial_id in range(len(TRIAL_NAMES_HS)):
             print(TRIAL_NAMES_HS[trial_id])
             self.current_trial = TRIAL_NAMES_HS[trial_id]
@@ -107,7 +138,7 @@ class InitFPA:
             euler_angles_esti_1 = self.get_euler_angles_gradient_decent(
                 gait_data_df, stance_phase_flag, base_correction_coeff=0.02)
 
-            output_data = gait_param_df['FPA_true'].values.reshape(-1, 1)
+            FPA_true = gait_param_df['FPA_true'].values.reshape(-1, 1)
 
             # plt.figure()
             # plt.plot(euler_angles_esti[:, 0])
@@ -119,15 +150,23 @@ class InitFPA:
 
             acc_IMU_rotated = self.get_rotated_acc(gait_data_df, euler_angles_esti, acc_cut_off_fre=None)
             FPA_estis = self.get_FPA_via_acc_before_strike_ratio(acc_IMU_rotated, steps, win_before_off=50, win_after_off=20)
-            # FPA_estis = gait_param_df['FPA_tbme'].values
-            fpa_true_temp, fpa_esti_temp = ProcessorFPA.compare_result(FPA_estis, output_data, steps)
+            FPA_tbme = gait_param_df['FPA_tbme']
+
+            step_trial_result_df = pd.DataFrame(np.column_stack([FPA_true, FPA_estis, FPA_tbme]))
+            step_trial_result_df.columns = ['FPA_true', 'FPA_estis', 'FPA_tbme']
+            step_trial_result_df.insert(0, 'trial_id', trial_id)
+            step_trial_result_df.insert(0, 'sub_name', self.sub_folder)
+            step_result_df = step_result_df.append(step_trial_result_df)
+
+            fpa_true_temp, fpa_esti_temp = ProcessorFPA.compare_result(FPA_estis, FPA_true, steps)
             fpa_true_list.extend(fpa_true_temp[3:-3])
             fpa_esti_list.extend(fpa_esti_temp[3:-3])
         self.plot_sub_result(fpa_true_list, fpa_esti_list)
         pearson_coeff, RMSE, mean_error = Evaluation._get_all_scores(
             np.array(fpa_true_list), np.array(fpa_esti_list), precision=3)
-        sub_result_summary_df = Evaluation.insert_prediction_result(
-            sub_result_summary_df, self.sub_folder, pearson_coeff, RMSE, mean_error)
+        summary_result_df = Evaluation.insert_prediction_result(
+            summary_result_df, self.sub_folder, pearson_coeff, RMSE, mean_error)
+        return step_result_df, summary_result_df
 
         # save the sub result
 

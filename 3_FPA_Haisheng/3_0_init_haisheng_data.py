@@ -5,7 +5,7 @@ from ProcessorFPAHS import InitFPA
 
 test_date = '0205'
 
-for sub_folder in SUB_NAMES_HS[11:]:
+for sub_folder in SUB_NAMES_HS[9:]:
     print(sub_folder)
 
     # data_initializer = DataInitializerHS(sub_folder)
@@ -13,11 +13,11 @@ for sub_folder in SUB_NAMES_HS[11:]:
     # param_initializer = ParamInitializerHS(sub_folder)
     # param_initializer.start_init()
 
-    fpa_initializer = InitFPA(sub_folder, test_date)
-    fpa_initializer.backward_fpa_estimation()
+fpa_initializer = InitFPA(test_date)
+fpa_initializer.start_init()
 
 
-    plt.show()
+plt.show()
 
 
 
