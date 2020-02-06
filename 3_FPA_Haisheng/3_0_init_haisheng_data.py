@@ -13,7 +13,7 @@ test_date = '0205'
 
 fpa_initializer = InitFPA(test_date)
 fpa_initializer.start_init()
-
+# fpa_initializer.param_optimizer()
 
 plt.show()
 
