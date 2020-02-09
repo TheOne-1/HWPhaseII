@@ -18,17 +18,18 @@ class ResultReader:
         return steps
 
     @staticmethod
-    def get_fpas(fpa_name_list, trial_result, steps, steps_to_skip_start, steps_to_skip_end):
+    def get_fpas(fpa_name_list, trial_result, steps):
         """
         The only steps with only one non-zero FPA are returned
         :param fpa_name_list:
         :return:
         """
         fpa_raw_values = trial_result[fpa_name_list].values
+        subtrial_ids = trial_result['subtrial_id'].values
         fpa_num = len(fpa_name_list)
         step_result_list = []
         abandoned_step_num = 0
-        for step in steps[steps_to_skip_start:len(steps)-steps_to_skip_end]:
+        for step in steps:
             step_clip = fpa_raw_values[step[0]:step[1]]
             valid_value_flag = np.where(step_clip != 0)
             if len(valid_value_flag[1]) != fpa_num:
@@ -37,15 +38,15 @@ class ResultReader:
             for i_fpa in range(fpa_num):
                 if i_fpa not in valid_value_flag[1]:
                     abandoned_step_num += 1
-                    break
+                    continue
             fpa_index = valid_value_flag[1].argsort()
             valid_fpas_unsorted = step_clip[valid_value_flag]
             valid_fpas = valid_fpas_unsorted[fpa_index]
-            one_row_result = np.concatenate([valid_fpas])
+            one_row_result = np.concatenate([valid_fpas, [subtrial_ids[step[0]]]])
             step_result_list.append(one_row_result)
 
         print('{num} steps abandoned'.format(num=abandoned_step_num))
-        trial_result = np.zeros([len(step_result_list), fpa_num])
+        trial_result = np.zeros([len(step_result_list), fpa_num+1])
         for i_step in range(len(step_result_list)):
             trial_result[i_step, :] = step_result_list[i_step]
         return trial_result

@@ -169,9 +169,6 @@ class ParamInitializerHS:
             param_data_df.columns = ['l_strikes', 'l_offs', 'l_FPA_all']
             estimated_strikes, estimated_offs = ParamInitializerHS.get_strike_off_from_imu(gait_data_df, param_data_df, TRIAL_NAMES_HS[trial_id])
 
-            #!!!
-            plt.plot(gait_data_df['f_1_z']/100)
-
             param_data_df.insert(len(param_data_df.columns), 'strikes_IMU', estimated_strikes)
             param_data_df.insert(len(param_data_df.columns), 'offs_IMU', estimated_offs)
             param_data_df.insert(0, 'vicon_frame', gait_data_df['vicon_frame'])
@@ -185,7 +182,7 @@ class ParamInitializerHS:
     def get_strike_off_from_imu(gait_data_df, param_data_df, trial_name, check_strike_off=True,
                                 plot_the_strike_off=True):
         my_detector = StrikeOffDetectorIMUHS(trial_name, gait_data_df, param_data_df, 'l_foot', HAISHENG_SENSOR_SAMPLE_RATE)
-        strike_delay, off_delay = -3, 0   # delay from the peak
+        strike_delay, off_delay = -5, 0   # delay from the peak
         fre = 6
         estimated_strike_indexes, estimated_off_indexes = my_detector.get_walking_strike_off(strike_delay, off_delay, fre)
         if plot_the_strike_off:

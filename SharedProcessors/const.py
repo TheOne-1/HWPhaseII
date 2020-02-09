@@ -163,6 +163,7 @@ SUB_SELECTED_SPEEDS = {'s5_ylw': 1.1, 's10_gk': 1.2, 's11_zy': 1.2,
 
 TRIAL_NAMES_HS = ['normal', 'small_in', 'medium_in', 'large_in', 'small_out', 'medium_out', 'large_out']
 
+FPA_NAME_LIST_HS = ['FPA_true', 'FPA_estis', 'FPA_tbme']
 
 
 

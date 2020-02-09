@@ -17,6 +17,8 @@ import os
 class InitFPA:
     def __init__(self, test_date):
         self.test_date = test_date
+        if not os.path.isdir('../3_FPA_Haisheng/result_conclusion/' + test_date):
+            os.makedirs('../3_FPA_Haisheng/result_conclusion/' + test_date)
         self.sub_folder = None
         self.sub_name = None
         self._placement_offset = None
@@ -32,8 +34,8 @@ class InitFPA:
             # self.show_step_acc()
             step_result_df, summary_result_df = self.backward_fpa_estimation(step_result_df, summary_result_df)
         summary_result_df = self.format_result_summary(summary_result_df)
-        self.save_result_df('../3_FPA_Haisheng/result_conclusion/step_result/step_result', step_result_df)
-        self.save_result_df('../3_FPA_Haisheng/result_conclusion/summary/summary_result', summary_result_df)
+        self.save_result_df('../3_FPA_Haisheng/result_conclusion/' + self.test_date + '/step_result', step_result_df)
+        self.save_result_df('../3_FPA_Haisheng/result_conclusion/' + self.test_date + '/summary_result', summary_result_df)
 
     def show_step_acc(self):
         """
@@ -101,23 +103,21 @@ class InitFPA:
             euler_angles_esti = self.get_euler_angles_gradient_decent_from_stance(
                 gait_data_df, stance_phase_flag)
 
-            # plt.figure()
-            # plt.plot(euler_angles_esti[:, 0])
-            # plt.plot(euler_angles_esti_1[:, 0])
-            # plt.figure()
-            # plt.plot(euler_angles_esti[:, 1])
-            # plt.plot(euler_angles_esti_1[:, 1])
-            # plt.show()
 
             acc_IMU_rotated = self.get_rotated_acc(gait_data_df, euler_angles_esti)
-            FPA_estis = self.get_FPA_via_acc_before_strike_ratio_percent_of_stance(acc_IMU_rotated, steps, start_percent=0.49, end_percent=1)
+            FPA_estis = self.get_FPA_via_acc_before_strike_ratio_portion_of_swing(acc_IMU_rotated, steps, start_percent=0.5, end_percent=1)
             FPA_tbme = gait_param_df['FPA_tbme']
 
-            step_trial_result_df = pd.DataFrame(np.column_stack([FPA_true, FPA_estis, FPA_tbme]))
-            step_trial_result_df.columns = ['FPA_true', 'FPA_estis', 'FPA_tbme']
+            step_flags = np.zeros(FPA_estis.shape)
+            for step in steps:
+                step_flags[step[0]] = 1  # strike
+                step_flags[step[1]] = 2  # off
+
+            step_trial_result_df = pd.DataFrame(np.column_stack([step_flags, FPA_true, FPA_estis, FPA_tbme]))
+            step_trial_result_df.columns = ['step_flag', 'FPA_true', 'FPA_estis', 'FPA_tbme']
             step_trial_result_df.insert(0, 'trial_id', trial_id)
             step_trial_result_df.insert(0, 'sub_name', self.sub_folder)
-            step_result_df = step_result_df.append(step_trial_result_df)
+            step_result_df = step_result_df.append(step_trial_result_df, sort=False)
 
             fpa_true_temp, fpa_esti_temp = ProcessorFPA.compare_result(FPA_estis, FPA_true, steps)
             fpa_true_list.extend(fpa_true_temp[3:-3])
@@ -142,7 +142,7 @@ class InitFPA:
 
     def param_optimizer(self):
         summary_result_df = pd.DataFrame()
-        for param in np.arange(0.3, 0.5, 0.02):
+        for param in np.arange(0.01, 0.03, 0.002):
             print(param)
             fpa_true_list, fpa_esti_list = [], []
             for i_sub in range(9, len(SUB_NAMES_HS)):
@@ -166,8 +166,8 @@ class InitFPA:
 
                     acc_IMU_rotated = self.get_rotated_acc(gait_data_df, euler_angles_esti, acc_cut_off_fre=None)
                     # FPA_estis = self.get_FPA_via_acc_before_strike_ratio(acc_IMU_rotated, steps, win_before_off=20, win_after_off=0)
-                    FPA_estis = self.get_FPA_via_acc_before_strike_ratio_percent_of_stance(acc_IMU_rotated, steps,
-                                                                                           start_percent=param, end_percent=1)
+                    FPA_estis = self.get_FPA_via_acc_before_strike_ratio_portion_of_swing(acc_IMU_rotated, steps,
+                                                                                          start_percent=0.5, end_percent=1)
                     FPA_tbme = gait_param_df['FPA_tbme']
 
                     step_trial_result_df = pd.DataFrame(np.column_stack([FPA_true, FPA_estis, FPA_tbme]))
@@ -423,7 +423,7 @@ class InitFPA:
             FPA_estis[the_sample] = the_FPA_esti
         return FPA_estis
 
-    def get_FPA_via_acc_before_strike_ratio_percent_of_stance(self, acc_IMU_rotated, steps, start_percent, end_percent):
+    def get_FPA_via_acc_before_strike_ratio_portion_of_swing(self, acc_IMU_rotated, steps, start_percent, end_percent):
         """Use the acc ratio before heel strike to calculate FPA"""
         data_len = acc_IMU_rotated.shape[0]
         FPA_estis = np.zeros([data_len])

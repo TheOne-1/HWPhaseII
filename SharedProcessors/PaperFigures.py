@@ -1,11 +1,13 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from const import LINE_WIDTH, FONT_DICT_SMALL, FONT_SIZE, FPA_NAME_LIST, SUB_NAMES, FONT_DICT
+from const import LINE_WIDTH, FONT_DICT_SMALL, FONT_SIZE, FPA_NAME_LIST_HS, SUB_NAMES, FONT_DICT, SUB_NAMES_HS, \
+    TRIAL_NAMES_HS, FONT_DICT_X_SMALL
 from Evaluation import Evaluation
+from scipy.stats import ttest_ind
 
 
-class PaperFigure:
+class BaseFigure:
     pass
 
     @staticmethod
@@ -19,41 +21,95 @@ class PaperFigure:
         ax.spines['bottom'].set_linewidth(LINE_WIDTH)
 
     @staticmethod
-    def each_sub_fig(result_all_df):
-        sub_ids = list(set(result_all_df['subject_id'].values))
-        sub_ids.sort()
+    def each_sub_summary(result_all_df):
+        sub_names = list(set(result_all_df['sub_name'].values))
         predict_result_df = pd.DataFrame()
-        for sub_id in sub_ids:
-            sub_result_df = result_all_df[result_all_df['subject_id'] == sub_id]
+        for sub_name in sub_names:
+            sub_id = SUB_NAMES_HS.index(sub_name)
+            sub_result_df = result_all_df[result_all_df['subject_id'] == sub_name]
             pearson_coeff, RMSE, mean_error = Evaluation.plot_fpa_result(
-                sub_result_df[FPA_NAME_LIST[0]], sub_result_df[FPA_NAME_LIST[2]], int(sub_id))
-            # plt.figure()
-            # plt.plot(sub_result_df[FPA_NAME_LIST[0]], sub_result_df[FPA_NAME_LIST[2]], 'g.')
-            # plt.plot([-20, 60], [-20, 60], 'black')
-            # plt.title(SUB_NAMES[int(sub_id)])
+                sub_result_df['FPA_true'], sub_result_df['FPA_estis'], sub_id)
             predict_result_df = Evaluation.insert_prediction_result(
-                predict_result_df, SUB_NAMES[int(sub_id)], pearson_coeff, RMSE, mean_error)
+                predict_result_df, SUB_NAMES[int(sub_name)], pearson_coeff, RMSE, mean_error)
         Evaluation.export_prediction_result(predict_result_df)
 
 
-class ErrorBarFigure(PaperFigure):
+class ErrorBarFigure(BaseFigure):
 
     @staticmethod
-    def show_each_pair(result_all_df):
-        plt.figure()
-        plt.plot(result_all_df[FPA_NAME_LIST[0]], result_all_df[FPA_NAME_LIST[1]], '.')
-        plt.plot([-20, 60], [-20, 60], 'r-')
-        plt.title(FPA_NAME_LIST[1])
+    def mean_value_ttest(true_values, predicted_values, result_all_df):
+        pvalue_list = []
+        true_means, true_stds = [], []
+        pred_means, pred_stds = [], []
+        trial_ids = result_all_df['trial_id']
+        sub_names = result_all_df['sub_name']
+        trial_id_list = list(set(trial_ids))
+        sub_name_list = list(set(sub_names))
+        trial_id_list.sort()
+        for trial_id in trial_id_list:
+            trial_true = true_values[trial_ids == trial_id]
+            trial_pred = predicted_values[trial_ids == trial_id]
+            true_sub_means, pred_sub_means = [], []
+            for sub_name in sub_name_list:
+                true_sub_values = trial_true[sub_names == sub_name]
+                pred_sub_values = trial_pred[sub_names == sub_name]
+                true_sub_means.append(np.mean(true_sub_values))
+                pred_sub_means.append(np.mean(pred_sub_values))
 
-        plt.figure()
-        plt.plot(result_all_df[FPA_NAME_LIST[0]], result_all_df[FPA_NAME_LIST[2]], '.')
-        plt.plot([-20, 60], [-20, 60], 'r-')
-        plt.title(FPA_NAME_LIST[2])
+            _, pvalue = ttest_ind(true_sub_means, pred_sub_means)
+            print(TRIAL_NAMES_HS[int(trial_id)] + ', p value: ' + str(round(pvalue, 2)))
+            pvalue_list.append(pvalue)
+
+            # save values for plots
+            true_means.append(np.mean(true_sub_means))
+            true_stds.append(np.std(true_sub_means))
+            pred_means.append(np.mean(pred_sub_means))
+            pred_stds.append(np.std(pred_sub_means))
+
+        return pvalue_list, true_means, true_stds, pred_means, pred_stds, trial_id_list
 
     @staticmethod
-    def compare_mean_error(result_all_df, type_name, x_tick_list=None, x_label=None):
-        error_tbme = result_all_df[FPA_NAME_LIST[0]] - result_all_df[FPA_NAME_LIST[1]]
-        error_acc_ratio = result_all_df[FPA_NAME_LIST[0]] - result_all_df[FPA_NAME_LIST[2]]
+    def compare_mean_value_paper(result_all_df):
+        """Only compare acc ratio and true FPAs"""
+        x_locs = [3, 2, 1, 0, 4, 5, 6]
+        values_acc_ratio = result_all_df['FPA_estis']
+        values_vicon = result_all_df['FPA_true']
+        pvalue_list, means_vicon, stds_vicon, means_acc_ratio, stds_acc_ratio, id_list = \
+            ErrorBarFigure.mean_value_ttest(values_vicon, values_acc_ratio, result_all_df)
+
+        plt.figure(figsize=(14, 6))
+        ErrorBarFigure.format_plot()
+        bars = []
+        for i_cate in range(len(id_list)):
+            bars.append(plt.bar(x_locs[i_cate], means_vicon[i_cate], color='grey', width=0.35))
+            ErrorBarFigure.draw_half_ebars(means_vicon[i_cate], stds_vicon[i_cate], x_locs[i_cate],
+                                           bool(np.sign(means_vicon[i_cate])+1))
+
+        for i_cate in range(len(id_list)):
+            bars.append(plt.bar(x_locs[i_cate] + 0.35, means_acc_ratio[i_cate], color='brown', width=0.35))
+            ErrorBarFigure.draw_half_ebars(means_acc_ratio[i_cate], stds_acc_ratio[i_cate], x_locs[i_cate] + 0.35,
+                                           bool(np.sign(means_vicon[i_cate]) + 1))
+        ax = plt.gca()
+        x_tick_loc = [i + 0.175 for i in range(len(id_list))]
+        ax.tick_params(labelsize=FONT_DICT['fontsize'])
+        ax.set_ylabel('Foot Progression Angle (deg)', fontdict=FONT_DICT)
+        ax.set_xticks(x_tick_loc)
+        x_tick_list = ['Large Toe-in', 'Medium Toe-in', 'Small Toe-in', 'Normal', 'Small Toe-out', 'Medium Toe-out', 'Large Toe-out']
+        ax.set_xticklabels(x_tick_list, fontdict=FONT_DICT_X_SMALL)
+        ax.set_yticks(range(-30, 41, 10))
+        y_tick_list = ['-30', '-20', '-10', '0', '10', '20', '30', '40']
+        ax.set_yticklabels(y_tick_list, fontdict=FONT_DICT)
+        ax.set_ylim(-33, 40)
+        ax.set_xlim(-0.5, 6.86)
+        plt.plot([-0.5, 6.86], [0, 0], color='black')
+        plt.legend([bars[0], bars[-1]], ['FPA: Motion Capture', 'FPA: IMU (Proposed New Method)'], handlelength=2,
+                   handleheight=1.3, bbox_to_anchor=(0.43, 1.03), ncol=1, fontsize=FONT_SIZE, frameon=False)
+        plt.tight_layout(rect=[0, 0, 1, 1])
+
+    @staticmethod
+    def compare_RMSE_paper(result_all_df, type_name, x_tick_list=None, x_label=None):
+        error_tbme = result_all_df['FPA_true'] - result_all_df['FPA_tbme']
+        error_acc_ratio = result_all_df['FPA_true'] - result_all_df['FPA_estis']
         means_tbme, stds_tbme, id_list = ErrorBarFigure.get_mean_std(error_tbme, result_all_df[type_name])
         means_acc_ratio, stds_acc_ratio, _ = ErrorBarFigure.get_mean_std(error_acc_ratio, result_all_df[type_name])
 
@@ -61,14 +117,14 @@ class ErrorBarFigure(PaperFigure):
         ErrorBarFigure.format_plot()
         bars, ebars = [], []
         for i_cate in range(len(id_list)):
-            bars.append(plt.bar(i_cate, means_tbme[i_cate], color='slategray', width=0.4))
-        ErrorBarFigure.draw_ebars(means_tbme, stds_tbme, id_list)
+            bars.append(plt.bar(i_cate, means_acc_ratio[i_cate], color='brown', width=0.4))
+        ErrorBarFigure.draw_ebars(means_acc_ratio, stds_acc_ratio, id_list)
 
         x_locs = []
         for i_cate in range(len(id_list)):
-            bars.append(plt.bar(i_cate + 0.4, means_acc_ratio[i_cate], color='brown', width=0.4))
+            bars.append(plt.bar(i_cate + 0.4, means_tbme[i_cate], color='slategray', width=0.4))
             x_locs.append(i_cate + 0.4)
-        ErrorBarFigure.draw_ebars(means_acc_ratio, stds_acc_ratio, id_list, x_locs=x_locs)
+        ErrorBarFigure.draw_ebars(means_tbme, stds_tbme, id_list, x_locs=x_locs)
         ax = plt.gca()
         x_tick_loc = [i + 0.2 for i in range(len(id_list))]
         ax.tick_params(labelsize=FONT_DICT['fontsize'])
@@ -81,13 +137,58 @@ class ErrorBarFigure(PaperFigure):
         ax.set_xticklabels(x_tick_list, fontdict=FONT_DICT)
         ax.set_xlabel(x_label, fontdict=FONT_DICT)
 
-        plt.legend([bars[0], bars[-1]], FPA_NAME_LIST[1:3])
+        plt.legend([bars[0], bars[-1]], FPA_NAME_LIST_HS[1:3])
+
+    @staticmethod
+    def show_each_pair(result_all_df):
+        plt.figure()
+        plt.plot(result_all_df['FPA_true'], result_all_df['FPA_tbme'], '.')
+        plt.plot([-20, 60], [-20, 60], 'r-')
+        plt.title('FPA_tbme')
+
+        plt.figure()
+        plt.plot(result_all_df['FPA_true'], result_all_df['FPA_estis'], '.')
+        plt.plot([-20, 60], [-20, 60], 'r-')
+        plt.title('FPA_esti')
+
+    @staticmethod
+    def compare_mean_error(result_all_df, type_name, x_tick_list=None, x_label=None):
+        error_tbme = result_all_df['FPA_true'] - result_all_df['FPA_tbme']
+        error_acc_ratio = result_all_df['FPA_true'] - result_all_df['FPA_estis']
+        means_tbme, stds_tbme, id_list = ErrorBarFigure.get_mean_std(error_tbme, result_all_df[type_name])
+        means_acc_ratio, stds_acc_ratio, _ = ErrorBarFigure.get_mean_std(error_acc_ratio, result_all_df[type_name])
+
+        plt.figure(figsize=(14, 8))
+        ErrorBarFigure.format_plot()
+        bars, ebars = [], []
+        for i_cate in range(len(id_list)):
+            bars.append(plt.bar(i_cate, means_acc_ratio[i_cate], color='brown', width=0.4))
+        ErrorBarFigure.draw_ebars(means_acc_ratio, stds_acc_ratio, id_list)
+
+        x_locs = []
+        for i_cate in range(len(id_list)):
+            bars.append(plt.bar(i_cate + 0.4, means_tbme[i_cate], color='slategray', width=0.4))
+            x_locs.append(i_cate + 0.4)
+        ErrorBarFigure.draw_ebars(means_tbme, stds_tbme, id_list, x_locs=x_locs)
+        ax = plt.gca()
+        x_tick_loc = [i + 0.2 for i in range(len(id_list))]
+        ax.tick_params(labelsize=FONT_DICT['fontsize'])
+        ax.set_ylabel('Mean error (°)', fontdict=FONT_DICT)
+        ax.set_xticks(x_tick_loc)
+        if x_tick_list is None:
+            x_tick_list = [str(int(the_id)) for the_id in id_list]
+        if x_label is None:
+            x_label = type_name
+        ax.set_xticklabels(x_tick_list, fontdict=FONT_DICT)
+        ax.set_xlabel(x_label, fontdict=FONT_DICT)
+
+        plt.legend([bars[0], bars[-1]], FPA_NAME_LIST_HS[1:3])
 
     @staticmethod
     def compare_mean_value(result_all_df, type_name, x_tick_list=None, x_label=None):
-        values_tbme = result_all_df[FPA_NAME_LIST[1]]
-        values_acc_ratio = result_all_df[FPA_NAME_LIST[2]]
-        values_vicon = result_all_df[FPA_NAME_LIST[0]]
+        values_tbme = result_all_df['FPA_tbme']
+        values_acc_ratio = result_all_df['FPA_estis']
+        values_vicon = result_all_df['FPA_true']
         means_tbme, stds_tbme, id_list = ErrorBarFigure.get_mean_std(values_tbme, result_all_df[type_name])
         means_acc_ratio, stds_acc_ratio, _ = ErrorBarFigure.get_mean_std(values_acc_ratio, result_all_df[type_name])
         means_vicon, stds_vicon, _ = ErrorBarFigure.get_mean_std(values_vicon, result_all_df[type_name])
@@ -99,10 +200,10 @@ class ErrorBarFigure(PaperFigure):
             bars.append(plt.bar(i_cate, means_vicon[i_cate], color='black', width=0.25))
 
         for i_cate in range(len(id_list)):
-            bars.append(plt.bar(i_cate + 0.25, means_tbme[i_cate], color='slategray', width=0.25))
+            bars.append(plt.bar(i_cate + 0.25, means_acc_ratio[i_cate], color='brown', width=0.25))
 
         for i_cate in range(len(id_list)):
-            bars.append(plt.bar(i_cate + 0.5, means_acc_ratio[i_cate], color='brown', width=0.25))
+            bars.append(plt.bar(i_cate + 0.5, means_tbme[i_cate], color='slategray', width=0.25))
 
         ax = plt.gca()
         x_tick_loc = [i + 0.25 for i in range(len(id_list))]
@@ -115,7 +216,54 @@ class ErrorBarFigure(PaperFigure):
             x_label = type_name
         ax.set_xticklabels(x_tick_list, fontdict=FONT_DICT)
         ax.set_xlabel(x_label, fontdict=FONT_DICT)
-        plt.legend([bars[0], bars[len(bars)//2], bars[-1]], FPA_NAME_LIST)
+        plt.legend([bars[0], bars[len(bars)//2], bars[-1]], FPA_NAME_LIST_HS)
+
+    @staticmethod
+    def compare_mean_error_of_mean_sub_error(result_all_df, type_name, x_tick_list=None, x_label=None):
+        """The mean error of each subject's mean error is used, which is the same as that of TBME"""
+        sub_name_list = list(set(result_all_df['sub_name'].values))
+        trial_id_list = list(set(result_all_df['trial_id'].values))
+        # type_id_of_errors is used to distinguish error of different trials
+        type_id_of_errors, error_of_subs_acc_ratio, error_of_subs_tbme = [], [], []
+        for trial_id in trial_id_list:
+            trial_result_df = result_all_df[result_all_df['trial_id'] == trial_id]
+
+            for sub_name in sub_name_list:
+                sub_df = trial_result_df[trial_result_df['sub_name'] == sub_name]
+                sub_mean_error_acc_ratio = np.mean(sub_df['FPA_true'] - sub_df['FPA_estis'])
+                error_of_subs_acc_ratio.append(sub_mean_error_acc_ratio)
+                sub_mean_error_tbme = np.mean(sub_df['FPA_true'] - sub_df['FPA_tbme'])
+                error_of_subs_tbme.append(sub_mean_error_tbme)
+                type_id_of_errors.append(trial_id)
+        type_id_of_errors_df, error_of_subs_acc_ratio_df, error_of_subs_tbme_df = \
+            pd.Series(type_id_of_errors), pd.Series(error_of_subs_acc_ratio), pd.Series(error_of_subs_tbme)
+        means_acc_ratio, stds_acc_ratio, _ = ErrorBarFigure.get_mean_std(error_of_subs_acc_ratio_df, type_id_of_errors_df)
+        means_tbme, stds_tbme, id_list = ErrorBarFigure.get_mean_std(error_of_subs_tbme_df, type_id_of_errors_df)
+
+        plt.figure(figsize=(14, 8))
+        ErrorBarFigure.format_plot()
+        bars, ebars = [], []
+        for i_cate in range(len(id_list)):
+            bars.append(plt.bar(i_cate, means_acc_ratio[i_cate], color='brown', width=0.4))
+        ErrorBarFigure.draw_ebars(means_acc_ratio, stds_acc_ratio, id_list)
+
+        x_locs = []
+        for i_cate in range(len(id_list)):
+            bars.append(plt.bar(i_cate + 0.4, means_tbme[i_cate], color='slategray', width=0.4))
+            x_locs.append(i_cate + 0.4)
+        ErrorBarFigure.draw_ebars(means_tbme, stds_tbme, id_list, x_locs=x_locs)
+        ax = plt.gca()
+        x_tick_loc = [i + 0.2 for i in range(len(id_list))]
+        ax.tick_params(labelsize=FONT_DICT['fontsize'])
+        ax.set_ylabel('Mean error (°)', fontdict=FONT_DICT)
+        ax.set_xticks(x_tick_loc)
+        if x_tick_list is None:
+            x_tick_list = [str(int(the_id)) for the_id in id_list]
+        if x_label is None:
+            x_label = type_name
+        ax.set_xticklabels(x_tick_list, fontdict=FONT_DICT)
+        ax.set_xlabel(x_label, fontdict=FONT_DICT)
+        plt.legend([bars[0], bars[-1]], FPA_NAME_LIST_HS[1:])
 
     @staticmethod
     def draw_ebars(means, stds, cate_id_list, x_locs=None):
@@ -128,6 +276,16 @@ class ErrorBarFigure(PaperFigure):
             caplines[i_cap].set_marker('_')
             caplines[i_cap].set_markersize(14)
             caplines[i_cap].set_markeredgewidth(LINE_WIDTH)
+
+    @staticmethod
+    def draw_half_ebars(means, stds, x_locs, bar_direction_bool):
+        lolims, uplims = bar_direction_bool, bool(1-bar_direction_bool)
+        ebar, caplines, barlinecols = plt.errorbar(x_locs, means, stds,
+                                                   capsize=0, ecolor='black', fmt='none', lolims=lolims, uplims=uplims,
+                                                   elinewidth=LINE_WIDTH)
+        caplines[0].set_marker('_')
+        caplines[0].set_markersize(14)
+        caplines[0].set_markeredgewidth(LINE_WIDTH)
 
     @staticmethod
     def draw_error_bar_figure_trials(result_df):
@@ -149,30 +307,6 @@ class ErrorBarFigure(PaperFigure):
         plt.savefig('fpa_figures/fpa error of speeds.png')
 
     @staticmethod
-    def draw_error_bar_figure_subtrials(result_df):
-        cate_name = 'subtrial_id'
-        mean_result_df, cate_id_list = ErrorBarFigure.get_mean_result_df(result_df, cate_name)
-        diff_values = mean_result_df['FPA true'] - mean_result_df['FPA esti']
-        means, stds, _ = ErrorBarFigure.get_mean_std(diff_values, mean_result_df[cate_name])
-
-        plt.figure(figsize=(8, 6))
-        ErrorBarFigure.format_plot()
-        bars, ebars = [], []
-        for i_cate in range(len(cate_id_list)):
-            bars.append(plt.bar(i_cate, means[i_cate], color='gray', width=0.7))
-
-        plt.plot([-1, 5], [0, 0], linewidth=LINE_WIDTH, color='black')
-        ebar, caplines, barlinecols = plt.errorbar(range(len(cate_id_list)), means, stds,
-                                                   capsize=0, ecolor='black', fmt='none', lolims=True, uplims=True,
-                                                   elinewidth=LINE_WIDTH)
-        for i_cap in range(2):
-            caplines[i_cap].set_marker('_')
-            caplines[i_cap].set_markersize(14)
-            caplines[i_cap].set_markeredgewidth(LINE_WIDTH)
-        ErrorBarFigure.set_fpa_errorbar_ticks_subtrial()
-        plt.savefig('fpa_figures/fpa error of subtrials.png')
-
-    @staticmethod
     def set_fpa_errorbar_ticks():
         ax = plt.gca()
         ax.set_xlim(-0.5, 2.5)
@@ -181,19 +315,6 @@ class ErrorBarFigure(PaperFigure):
 
         ax.set_ylim(-2.5, 2.5)
         y_range = range(-2, 3, 1)
-        ax.set_yticks(y_range)
-        ax.set_yticklabels(y_range, fontdict=FONT_DICT_SMALL)
-        ax.set_ylabel('Average FPA error (deg)', labelpad=10, fontdict=FONT_DICT_SMALL)
-
-    @staticmethod
-    def set_fpa_errorbar_ticks_subtrial():
-        ax = plt.gca()
-        ax.set_xlim(-0.5, 4.5)
-        ax.set_xticks(np.arange(0, 5, 1))
-        ax.set_xticklabels(['B/L - 10', 'B/L - 5', 'B/L', 'B/L + 15', 'B/L + 30'], fontdict=FONT_DICT_SMALL)
-
-        ax.set_ylim(-4, 4)
-        y_range = range(-4, 5, 2)
         ax.set_yticks(y_range)
         ax.set_yticklabels(y_range, fontdict=FONT_DICT_SMALL)
         ax.set_ylabel('Average FPA error (deg)', labelpad=10, fontdict=FONT_DICT_SMALL)
