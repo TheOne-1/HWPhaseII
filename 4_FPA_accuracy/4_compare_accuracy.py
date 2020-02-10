@@ -1,11 +1,16 @@
 import pandas as pd
 import numpy as np
 from PaperFigures import ErrorBarFigure
+from ProcessorFPAHS import InitFPA
 import matplotlib.pyplot as plt
 from const import SUB_NAMES_HS, TRIAL_NAMES_HS, FPA_NAME_LIST_HS
 from ResultReader import ResultReader
 
+
 test_date = '0205'
+ErrorBarFigure.compare_acc(sub_id=6)
+plt.show()
+
 steps_to_skip_start, steps_to_skip_end = 7, 2
 result_raw_df = pd.read_csv('../3_FPA_Haisheng/result_conclusion/' + test_date + '/step_result.csv', index_col=False)
 result_df_column_names = FPA_NAME_LIST_HS + ['sub_name', 'trial_id']
@@ -32,8 +37,8 @@ for sub_name in SUB_NAMES_HS[:]:
 # ErrorBarFigure.compare_mean_value(result_all_df, 'trial_id', TRIAL_NAMES_HS, 'trial name')
 
 """Figures for new paper"""
-ErrorBarFigure.compare_mean_value_paper(result_all_df)
-
+# ErrorBarFigure.compare_mean_value_paper(result_all_df)
+ErrorBarFigure.compare_RMSE_paper(result_all_df)
 plt.show()
 
 

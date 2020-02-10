@@ -2,9 +2,13 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from const import LINE_WIDTH, FONT_DICT_SMALL, FONT_SIZE, FPA_NAME_LIST_HS, SUB_NAMES, FONT_DICT, SUB_NAMES_HS, \
-    TRIAL_NAMES_HS, FONT_DICT_X_SMALL
+    TRIAL_NAMES_HS, FONT_DICT_X_SMALL, DATA_PATH_HS
 from Evaluation import Evaluation
 from scipy.stats import ttest_ind
+from ProcessorFPAHS import InitFPA
+from DataProcessorHS import DataInitializerHS
+from numpy import sin, cos
+from Processor import Processor
 
 
 class BaseFigure:
@@ -35,38 +39,55 @@ class BaseFigure:
 
 
 class ErrorBarFigure(BaseFigure):
-
     @staticmethod
-    def mean_value_ttest(true_values, predicted_values, result_all_df):
-        pvalue_list = []
-        true_means, true_stds = [], []
-        pred_means, pred_stds = [], []
-        trial_ids = result_all_df['trial_id']
-        sub_names = result_all_df['sub_name']
-        trial_id_list = list(set(trial_ids))
-        sub_name_list = list(set(sub_names))
-        trial_id_list.sort()
-        for trial_id in trial_id_list:
-            trial_true = true_values[trial_ids == trial_id]
-            trial_pred = predicted_values[trial_ids == trial_id]
-            true_sub_means, pred_sub_means = [], []
-            for sub_name in sub_name_list:
-                true_sub_values = trial_true[sub_names == sub_name]
-                pred_sub_values = trial_pred[sub_names == sub_name]
-                true_sub_means.append(np.mean(true_sub_values))
-                pred_sub_means.append(np.mean(pred_sub_values))
+    def compare_acc(sub_id):
+        """
+        Show the average step. All the steps were interpolated to 100 samples.
+        :return:
+        """
+        def init_trial(trial_id):
+            gait_data_path = base_path + TRIAL_NAMES_HS[trial_id] + '.csv'
+            gait_data_df = pd.read_csv(gait_data_path, index_col=False)
 
-            _, pvalue = ttest_ind(true_sub_means, pred_sub_means)
-            print(TRIAL_NAMES_HS[int(trial_id)] + ', p value: ' + str(round(pvalue, 2)))
-            pvalue_list.append(pvalue)
+            gait_param_path = base_path + 'param_of_' + TRIAL_NAMES_HS[trial_id] + '.csv'
+            gait_param_df = pd.read_csv(gait_param_path, index_col=False)
+            steps, stance_phase_flag = InitFPA.initalize_steps_and_stance_phase(gait_param_df)
+            euler_angles_esti = InitFPA.get_euler_angles_gradient_decent_from_stance(
+                gait_data_df, stance_phase_flag)
+            acc_IMU_rotated = InitFPA.get_rotated_acc(placement_R_foot_sensor, gait_data_df, euler_angles_esti)
 
-            # save values for plots
-            true_means.append(np.mean(true_sub_means))
-            true_stds.append(np.std(true_sub_means))
-            pred_means.append(np.mean(pred_sub_means))
-            pred_stds.append(np.std(pred_sub_means))
+            acc_x_step_array, acc_y_step_array = np.zeros([len(steps) - 6, 100]), np.zeros([len(steps) - 6, 100])
+            for i_step in range(3, len(steps) - 3):
+                last_off = steps[i_step][1]
+                current_strike = steps[i_step + 1][0]
+                acc_x_step_array[i_step - 3, :] = Processor.resample_channel(acc_IMU_rotated[last_off:current_strike, 0], 100)
+                acc_y_step_array[i_step - 3, :] = Processor.resample_channel(acc_IMU_rotated[last_off:current_strike, 1], 100)
 
-        return pvalue_list, true_means, true_stds, pred_means, pred_stds, trial_id_list
+            return np.mean(acc_x_step_array, axis=0), np.mean(acc_y_step_array, axis=0)
+
+        sub_folder = SUB_NAMES_HS[sub_id]
+        base_path = DATA_PATH_HS + 'processed/' + sub_folder + '/'
+        placement_offset = DataInitializerHS.init_placement_offset(sub_folder)
+        offset_rad = - np.deg2rad(placement_offset)
+        placement_R_foot_sensor = np.array([
+            [cos(offset_rad), sin(offset_rad), 0],
+            [-sin(offset_rad), cos(offset_rad), 0],
+            [0, 0, 1]])
+
+        acc_x_toe_in, acc_y_toe_in = init_trial(3)
+        acc_x_toe_out, acc_y_toe_out = init_trial(6)
+
+        plt.figure(figsize=(8, 10))
+        plt.subplot(211)
+        acc_x_plot, = plt.plot(acc_x_toe_in)
+        acc_y_plot, = plt.plot(acc_y_toe_in)
+        plt.subplot(212)
+        acc_x_plot, = plt.plot(acc_x_toe_out)
+        acc_y_plot, = plt.plot(acc_y_toe_out)
+        legend_names = ['x-axis', 'y-axis']
+        plt.legend([acc_x_plot, acc_y_plot], legend_names, fontsize=FONT_SIZE, frameon=True,
+                   bbox_to_anchor=(0.5, 0.75))
+
 
     @staticmethod
     def compare_mean_value_paper(result_all_df):
@@ -75,7 +96,7 @@ class ErrorBarFigure(BaseFigure):
         values_acc_ratio = result_all_df['FPA_estis']
         values_vicon = result_all_df['FPA_true']
         pvalue_list, means_vicon, stds_vicon, means_acc_ratio, stds_acc_ratio, id_list = \
-            ErrorBarFigure.mean_value_ttest(values_vicon, values_acc_ratio, result_all_df)
+            ErrorBarFigure.mean_value_ttest(values_vicon, values_acc_ratio, result_all_df, np.mean)
 
         plt.figure(figsize=(14, 6))
         ErrorBarFigure.format_plot()
@@ -88,7 +109,7 @@ class ErrorBarFigure(BaseFigure):
         for i_cate in range(len(id_list)):
             bars.append(plt.bar(x_locs[i_cate] + 0.35, means_acc_ratio[i_cate], color='brown', width=0.35))
             ErrorBarFigure.draw_half_ebars(means_acc_ratio[i_cate], stds_acc_ratio[i_cate], x_locs[i_cate] + 0.35,
-                                           bool(np.sign(means_vicon[i_cate]) + 1))
+                                           bool(np.sign(means_acc_ratio[i_cate]) + 1))
         ax = plt.gca()
         x_tick_loc = [i + 0.175 for i in range(len(id_list))]
         ax.tick_params(labelsize=FONT_DICT['fontsize'])
@@ -107,37 +128,78 @@ class ErrorBarFigure(BaseFigure):
         plt.tight_layout(rect=[0, 0, 1, 1])
 
     @staticmethod
-    def compare_RMSE_paper(result_all_df, type_name, x_tick_list=None, x_label=None):
+    def compare_RMSE_paper(result_all_df):
+        x_locs = [3, 2, 1, 0, 4, 5, 6]
         error_tbme = result_all_df['FPA_true'] - result_all_df['FPA_tbme']
         error_acc_ratio = result_all_df['FPA_true'] - result_all_df['FPA_estis']
-        means_tbme, stds_tbme, id_list = ErrorBarFigure.get_mean_std(error_tbme, result_all_df[type_name])
-        means_acc_ratio, stds_acc_ratio, _ = ErrorBarFigure.get_mean_std(error_acc_ratio, result_all_df[type_name])
+        pvalue_list, RMSE_tbme, stds_tbme, RMSE_acc_ratio, stds_acc_ratio, id_list = \
+            ErrorBarFigure.mean_value_ttest(error_tbme, error_acc_ratio, result_all_df, np.mean)       # ErrorBarFigure.root_mean_fun
 
-        plt.figure(figsize=(14, 8))
+        plt.figure(figsize=(14, 6))
         ErrorBarFigure.format_plot()
-        bars, ebars = [], []
+        bars = []
         for i_cate in range(len(id_list)):
-            bars.append(plt.bar(i_cate, means_acc_ratio[i_cate], color='brown', width=0.4))
-        ErrorBarFigure.draw_ebars(means_acc_ratio, stds_acc_ratio, id_list)
+            bars.append(plt.bar(x_locs[i_cate], RMSE_tbme[i_cate], color='orange', width=0.35))
+            ErrorBarFigure.draw_half_ebars(RMSE_tbme[i_cate], stds_tbme[i_cate], x_locs[i_cate],
+                                           bool(np.sign(RMSE_tbme[i_cate])+1))
 
-        x_locs = []
         for i_cate in range(len(id_list)):
-            bars.append(plt.bar(i_cate + 0.4, means_tbme[i_cate], color='slategray', width=0.4))
-            x_locs.append(i_cate + 0.4)
-        ErrorBarFigure.draw_ebars(means_tbme, stds_tbme, id_list, x_locs=x_locs)
+            bars.append(plt.bar(x_locs[i_cate] + 0.35, RMSE_acc_ratio[i_cate], color='brown', width=0.35))
+            ErrorBarFigure.draw_half_ebars(RMSE_acc_ratio[i_cate], stds_acc_ratio[i_cate], x_locs[i_cate] + 0.35,
+                                           bool(np.sign(RMSE_acc_ratio[i_cate]) + 1))
         ax = plt.gca()
-        x_tick_loc = [i + 0.2 for i in range(len(id_list))]
+        x_tick_loc = [i + 0.175 for i in range(len(id_list))]
         ax.tick_params(labelsize=FONT_DICT['fontsize'])
-        ax.set_ylabel('Mean error (°)', fontdict=FONT_DICT)
+        ax.set_ylabel('Mean Error of FPA Estimation (deg)', fontdict=FONT_DICT)
         ax.set_xticks(x_tick_loc)
-        if x_tick_list is None:
-            x_tick_list = [str(int(the_id)) for the_id in id_list]
-        if x_label is None:
-            x_label = type_name
-        ax.set_xticklabels(x_tick_list, fontdict=FONT_DICT)
-        ax.set_xlabel(x_label, fontdict=FONT_DICT)
+        x_tick_list = ['Large Toe-in', 'Medium Toe-in', 'Small Toe-in', 'Normal', 'Small Toe-out', 'Medium Toe-out', 'Large Toe-out']
+        ax.set_xticklabels(x_tick_list, fontdict=FONT_DICT_X_SMALL)
+        ax.set_ylim(-4.2, 6.2)
+        ax.set_yticks(range(-4, 7, 2))
+        y_tick_list = ['-4', '-2', '0', '2', '4', '6']
+        ax.set_yticklabels(y_tick_list, fontdict=FONT_DICT)
+        ax.set_xlim(-0.5, 6.86)
+        plt.plot([-0.5, 6.86], [0, 0], color='black')
+        plt.legend([bars[0], bars[-1]], ['Algorithm Proposed in [xx]', 'Algorithm Proposed in This Paper)'], handlelength=2,
+                   handleheight=1.3, bbox_to_anchor=(0.52, 1.03), ncol=1, fontsize=FONT_SIZE, frameon=False)
+        plt.tight_layout(rect=[0, 0, 1, 1])
 
-        plt.legend([bars[0], bars[-1]], FPA_NAME_LIST_HS[1:3])
+    @staticmethod
+    def root_mean_fun(data):
+        output_data = np.sqrt(np.average(data ** 2, axis=0))
+        return output_data
+
+    @staticmethod
+    def mean_value_ttest(true_values, predicted_values, result_all_df, raw_data_operate_fun):
+        pvalue_list = []
+        true_means, true_stds = [], []
+        pred_means, pred_stds = [], []
+        trial_ids = result_all_df['trial_id']
+        sub_names = result_all_df['sub_name']
+        trial_id_list = list(set(trial_ids))
+        sub_name_list = list(set(sub_names))
+        trial_id_list.sort()
+        for trial_id in trial_id_list:
+            trial_true = true_values[trial_ids == trial_id]
+            trial_pred = predicted_values[trial_ids == trial_id]
+            true_sub_results, pred_sub_results = [], []
+            for sub_name in sub_name_list:
+                true_sub_values = trial_true[sub_names == sub_name]
+                pred_sub_values = trial_pred[sub_names == sub_name]
+                true_sub_results.append(raw_data_operate_fun(true_sub_values))
+                pred_sub_results.append(raw_data_operate_fun(pred_sub_values))
+
+            _, pvalue = ttest_ind(true_sub_results, pred_sub_results)
+            print(TRIAL_NAMES_HS[int(trial_id)] + ', p value: ' + str(round(pvalue, 2)))
+            pvalue_list.append(pvalue)
+
+            # save values for plots
+            true_means.append(np.mean(true_sub_results))
+            true_stds.append(np.std(true_sub_results))
+            pred_means.append(np.mean(pred_sub_results))
+            pred_stds.append(np.std(pred_sub_results))
+
+        return pvalue_list, true_means, true_stds, pred_means, pred_stds, trial_id_list
 
     @staticmethod
     def show_each_pair(result_all_df):

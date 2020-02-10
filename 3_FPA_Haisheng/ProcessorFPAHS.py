@@ -55,7 +55,7 @@ class InitFPA:
             steps, stance_phase_flag = self.initalize_steps_and_stance_phase(gait_param_df)
             euler_angles_esti = self.get_euler_angles_gradient_decent_from_stance(
                 gait_data_df, stance_phase_flag)
-            acc_IMU_rotated = self.get_rotated_acc(gait_data_df, euler_angles_esti)
+            acc_IMU_rotated = self.get_rotated_acc(self._placement_R_foot_sensor, gait_data_df, euler_angles_esti)
             acc_ori = gait_data_df[['acc_x', 'acc_y', 'acc_z']].values
 
             acc_ori_list.append(acc_ori)
@@ -104,7 +104,7 @@ class InitFPA:
                 gait_data_df, stance_phase_flag)
 
 
-            acc_IMU_rotated = self.get_rotated_acc(gait_data_df, euler_angles_esti)
+            acc_IMU_rotated = self.get_rotated_acc(self._placement_R_foot_sensor, gait_data_df, euler_angles_esti)
             FPA_estis = self.get_FPA_via_acc_before_strike_ratio_portion_of_swing(acc_IMU_rotated, steps, start_percent=0.5, end_percent=1)
             FPA_tbme = gait_param_df['FPA_tbme']
 
@@ -164,7 +164,7 @@ class InitFPA:
                     euler_angles_esti = self.get_euler_angles_gradient_decent_from_stance(
                         gait_data_df, stance_phase_flag, base_correction_coeff=0.02)
 
-                    acc_IMU_rotated = self.get_rotated_acc(gait_data_df, euler_angles_esti, acc_cut_off_fre=None)
+                    acc_IMU_rotated = self.get_rotated_acc(self._placement_R_foot_sensor, gait_data_df, euler_angles_esti)
                     # FPA_estis = self.get_FPA_via_acc_before_strike_ratio(acc_IMU_rotated, steps, win_before_off=20, win_after_off=0)
                     FPA_estis = self.get_FPA_via_acc_before_strike_ratio_portion_of_swing(acc_IMU_rotated, steps,
                                                                                           start_percent=0.5, end_percent=1)
@@ -369,7 +369,8 @@ class InitFPA:
 
         return euler_angles_esti
 
-    def get_rotated_acc(self, gait_data_df, euler_angles, acc_cut_off_fre=None):
+    @staticmethod
+    def get_rotated_acc(placement_R_foot_sensor, gait_data_df, euler_angles, acc_cut_off_fre=None):
         acc_IMU = gait_data_df[['acc_x', 'acc_y', 'acc_z']].values
         if acc_cut_off_fre is not None:
             acc_IMU = StrikeOffDetectorIMU.data_filt(acc_IMU, acc_cut_off_fre, HAISHENG_SENSOR_SAMPLE_RATE)
@@ -377,7 +378,7 @@ class InitFPA:
         data_len = acc_IMU.shape[0]
         for i_sample in range(data_len):
             dcm_mat = euler2mat(euler_angles[i_sample, 0], euler_angles[i_sample, 1], 0)
-            acc_IMU_rotated[i_sample, :] = np.matmul(self._placement_R_foot_sensor, acc_IMU[i_sample, :].T)
+            acc_IMU_rotated[i_sample, :] = np.matmul(placement_R_foot_sensor, acc_IMU[i_sample, :].T)
             acc_IMU_rotated[i_sample, :] = np.matmul(dcm_mat, acc_IMU_rotated[i_sample, :].T)
 
         return acc_IMU_rotated
