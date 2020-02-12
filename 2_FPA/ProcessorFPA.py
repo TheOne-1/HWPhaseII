@@ -6,7 +6,7 @@ from Evaluation import Evaluation
 from const import MOCAP_SAMPLE_RATE, SUB_NAMES, TRIAL_NAMES
 from StrikeOffDetectorIMU import StrikeOffDetectorIMU
 from numpy.linalg import norm
-from numpy import sin, cos
+from numpy import sin, cos, tan
 from transforms3d.euler import euler2mat
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
@@ -20,11 +20,28 @@ class ProcessorFPA(Processor):
 
         # 0 for normal prediction, 1 for best empirical equation parameter via linear regression,
         # 2 for best cut-off frequency
-        self.experiment_id = 4
+        self.experiment_id = 5
 
     def convert_input_output(self, input_data, output_data, supp_df, sampling_fre):
         if input_data is None:
             return None, None
+
+        if self.experiment_id == 5:
+            """For test"""
+            sub_id_list = np.sort(list(set(supp_df['subject_id'].values))).astype('int')
+            trial_id_list = np.sort(list(set(supp_df['trial_id'].values))).astype('int')
+            for sub_id in sub_id_list:
+                sub_id = int(sub_id)
+                for trial_id in trial_id_list:
+                    data_index = (supp_df['subject_id'] == sub_id) & (supp_df['trial_id'] == trial_id)
+                    input_data_sub = input_data[data_index]
+                    steps, stance_phase_flag = self.initalize_steps_and_stance_phase(input_data_sub)
+                    euler_angles_esti = self.get_complementary_filtered_euler_angles(
+                        input_data_sub, supp_df['trial_id'].values, stance_phase_flag, cut_off_fre=6)
+                    euler_angles_esti_1 = self.get_complementary_filtered_euler_angles_1(
+                        input_data_sub, supp_df['trial_id'].values, stance_phase_flag, cut_off_fre=6)
+                    plt.plot(np.rad2deg(euler_angles_esti[:, 0]))     # !!!
+                    plt.plot(np.rad2deg(euler_angles_esti_1[:, 0]))     # !!!
 
         if self.experiment_id == 4:
             """brand new functions for publication"""
@@ -270,6 +287,51 @@ class ProcessorFPA(Processor):
                     (roll_correction[i_sample] - euler_angles_esti[i_sample, 0])
                 euler_angles_esti[i_sample, 1] = euler_angles_esti[i_sample, 1] + correction_coeff * \
                     (pitch_correction[i_sample] - euler_angles_esti[i_sample, 1])
+        return euler_angles_esti
+
+    def get_complementary_filtered_euler_angles_1(self, input_data, trial_ids, stance_phase_flag,
+                                                  base_correction_coeff=0.065,
+                                                  cut_off_fre=6):
+        """For test"""
+        delta_t = 1 / MOCAP_SAMPLE_RATE
+
+        acc_IMU = input_data[:, 0:3]
+        acc_IMU = StrikeOffDetectorIMU.data_filt(acc_IMU, cut_off_fre, MOCAP_SAMPLE_RATE)
+        gyr_IMU = input_data[:, 3:6]
+        gyr_IMU = StrikeOffDetectorIMU.data_filt(gyr_IMU, cut_off_fre, MOCAP_SAMPLE_RATE)
+        data_len = input_data.shape[0]
+
+        gyr_IMU_moved = np.zeros(gyr_IMU.shape)
+        gyr_IMU_moved[:-1, :] = gyr_IMU[1:, :]
+        angle_augments = (gyr_IMU + gyr_IMU_moved) / 2 * delta_t
+        # angle_augments = gyr_IMU * delta_t
+        euler_angles_esti = np.zeros([data_len, 3])
+        acc_IMU_norm = norm(acc_IMU, axis=1)
+        roll_correction = np.arctan2(acc_IMU[:, 1], acc_IMU_norm)  # axis 0
+        pitch_correction = - np.arctan2(acc_IMU[:, 0], acc_IMU_norm)  # axis 1
+
+        dynamic_correction_coeff = 0.9
+        for i_sample in range(data_len):
+            if trial_ids[i_sample] != trial_ids[i_sample - 1]:
+                dynamic_correction_coeff = 0.9
+
+            roll, pitch, yaw = euler_angles_esti[i_sample-1, :]
+            transfer_mat = np.mat([[1, sin(roll) * tan(pitch), cos(roll) * tan(pitch)],  # !!!
+                                   [0, cos(roll), -sin(roll)],
+                                   [0, sin(roll) / cos(pitch), cos(roll) / cos(pitch)]])
+            angle_augment = np.matmul(transfer_mat, angle_augments[i_sample, :].T)
+
+            euler_angles_esti[i_sample, :] = euler_angles_esti[i_sample - 1, :] + angle_augment
+            if stance_phase_flag[i_sample]:
+                if dynamic_correction_coeff > 1e-3:
+                    correction_coeff = dynamic_correction_coeff + base_correction_coeff
+                    dynamic_correction_coeff = dynamic_correction_coeff * 0.9
+                else:
+                    correction_coeff = base_correction_coeff
+                euler_angles_esti[i_sample, 0] = euler_angles_esti[i_sample, 0] + correction_coeff * \
+                                                 (roll_correction[i_sample] - euler_angles_esti[i_sample, 0])
+                euler_angles_esti[i_sample, 1] = euler_angles_esti[i_sample, 1] + correction_coeff * \
+                                                 (pitch_correction[i_sample] - euler_angles_esti[i_sample, 1])
         return euler_angles_esti
 
     def get_FPA_via_max_acc_ratio_at_axis_peak(self, acc_IMU_rotated, steps):

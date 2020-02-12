@@ -127,8 +127,11 @@ class ErrorBarFigure(BaseFigure):
                    handleheight=1.3, bbox_to_anchor=(0.43, 1.03), ncol=1, fontsize=FONT_SIZE, frameon=False)
         plt.tight_layout(rect=[0, 0, 1, 1])
 
+    # @staticmethod
+    # def print_accuracy_paper(result_all_df):
+
     @staticmethod
-    def compare_RMSE_paper(result_all_df):
+    def compare_accuracy_paper(result_all_df):
         x_locs = [3, 2, 1, 0, 4, 5, 6]
         error_tbme = result_all_df['FPA_true'] - result_all_df['FPA_tbme']
         error_acc_ratio = result_all_df['FPA_true'] - result_all_df['FPA_estis']
@@ -154,7 +157,7 @@ class ErrorBarFigure(BaseFigure):
         ax.set_xticks(x_tick_loc)
         x_tick_list = ['Large Toe-in', 'Medium Toe-in', 'Small Toe-in', 'Normal', 'Small Toe-out', 'Medium Toe-out', 'Large Toe-out']
         ax.set_xticklabels(x_tick_list, fontdict=FONT_DICT_X_SMALL)
-        ax.set_ylim(-4.2, 6.2)
+        ax.set_ylim(-6.2, 6.2)
         ax.set_yticks(range(-4, 7, 2))
         y_tick_list = ['-4', '-2', '0', '2', '4', '6']
         ax.set_yticklabels(y_tick_list, fontdict=FONT_DICT)
@@ -168,6 +171,9 @@ class ErrorBarFigure(BaseFigure):
     def root_mean_fun(data):
         output_data = np.sqrt(np.average(data ** 2, axis=0))
         return output_data
+
+    # @staticmethod
+    # def pearson_value_ttest(data):
 
     @staticmethod
     def mean_value_ttest(true_values, predicted_values, result_all_df, raw_data_operate_fun):

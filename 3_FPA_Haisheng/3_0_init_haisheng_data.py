@@ -3,7 +3,7 @@ from const import SUB_NAMES_HS
 from DataProcessorHS import DataInitializerHS, ParamInitializerHS
 from ProcessorFPAHS import InitFPA
 
-test_date = '0205'
+test_date = '0210'
 
 # for sub_folder in SUB_NAMES_HS:
 #     data_initializer = DataInitializerHS(sub_folder)

@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.metrics import r2_score, mean_squared_error
+from sklearn.metrics import mean_squared_error
 from numpy import sqrt
 from scipy.stats import pearsonr
 from keras import optimizers
