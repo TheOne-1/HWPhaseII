@@ -51,7 +51,7 @@ class ErrorBarFigure(BaseFigure):
 
             gait_param_path = base_path + 'param_of_' + TRIAL_NAMES_HS[trial_id] + '.csv'
             gait_param_df = pd.read_csv(gait_param_path, index_col=False)
-            steps, stance_phase_flag = InitFPA.initalize_steps_and_stance_phase(gait_param_df)
+            steps, stance_phase_flag = InitFPA.initalize_steps_and_stance_phase(gait_data_df, gait_param_df)
             euler_angles_esti = InitFPA.get_euler_angles_gradient_decent_from_stance(
                 gait_data_df, stance_phase_flag)
             acc_IMU_rotated = InitFPA.get_rotated_acc(placement_R_foot_sensor, gait_data_df, euler_angles_esti)

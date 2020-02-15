@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from const import DATA_PATH_HS, SUB_AND_TRIALS_HS, DATA_COLUMNS_IMU, MARKERS_HS, SUB_SELECTED_SPEEDS, \
-    TRIAL_NAMES_HS, HAISHENG_SENSOR_SAMPLE_RATE, COLUMN_NAMES_HAISHENG, SUB_NAMES_HS, FONT_SIZE
+    TRIAL_NAMES_HS, HAISHENG_SENSOR_SAMPLE_RATE, COLUMN_NAMES_HAISHENG, SUB_NAMES_HS, FONT_SIZE, FONT_DICT
 from numpy.linalg import norm
 from StrikeOffDetectorIMU import StrikeOffDetectorIMU
 from numpy import cos, sin, tan
@@ -19,6 +19,8 @@ class InitFPA:
         self.test_date = test_date
         if not os.path.isdir('../3_FPA_Haisheng/result_conclusion/' + test_date):
             os.makedirs('../3_FPA_Haisheng/result_conclusion/' + test_date)
+        if not os.path.isdir('../3_FPA_Haisheng/result_conclusion/' + test_date + '/plots'):
+            os.makedirs('../3_FPA_Haisheng/result_conclusion/' + test_date + '/plots')
         self.sub_folder = None
         self.sub_name = None
         self._placement_offset = None
@@ -40,7 +42,7 @@ class InitFPA:
 
     def show_step_acc(self):
         """
-        Show the average step. All the steps were interpolated to 50 samples.
+        Show the average step. All the steps were interpolated to 100 samples.
         :return:
         """
         acc_ori_list, acc_rota_list, steps_list = [], [], []
@@ -53,7 +55,7 @@ class InitFPA:
 
             gait_param_path = self.base_path + 'param_of_' + TRIAL_NAMES_HS[trial_id] + '.csv'
             gait_param_df = pd.read_csv(gait_param_path, index_col=False)
-            steps, stance_phase_flag = self.initalize_steps_and_stance_phase(gait_param_df)
+            steps, stance_phase_flag = self.initalize_steps_and_stance_phase(gait_data_df, gait_param_df)
             euler_angles_esti = self.get_euler_angles_gradient_decent_from_stance(
                 gait_data_df, stance_phase_flag)
 
@@ -73,19 +75,25 @@ class InitFPA:
             else:
                 plt.subplot(2, 4, trial_id + 2)
             plt.title(TRIAL_NAMES_HS[trial_id])
-            acc_x_step_array, acc_y_step_array = np.zeros([len(steps) - 6, 50]), np.zeros([len(steps) - 6, 50])
+            acc_x_step_array, acc_y_step_array = np.zeros([len(steps) - 6, 100]), np.zeros([len(steps) - 6, 100])
+            acc_x_step_array_ori, acc_y_step_array_ori = np.zeros([len(steps) - 6, 100]), np.zeros([len(steps) - 6, 100])
             for i_step in range(3, len(steps) - 3):
                 last_off = steps[i_step][1]
                 current_strike = steps[i_step + 1][0]
-                acc_x_step_array[i_step - 3, :] = Processor.resample_channel(acc_rota[last_off:current_strike, 0], 50)
-                acc_y_step_array[i_step - 3, :] = Processor.resample_channel(acc_rota[last_off:current_strike, 1], 50)
+                acc_x_step_array_ori[i_step - 3, :] = Processor.resample_channel(acc_ori[last_off:current_strike, 0], 100)
+                acc_y_step_array_ori[i_step - 3, :] = Processor.resample_channel(acc_ori[last_off:current_strike, 1], 100)
+                acc_x_step_array[i_step - 3, :] = Processor.resample_channel(acc_rota[last_off:current_strike, 0], 100)
+                acc_y_step_array[i_step - 3, :] = Processor.resample_channel(acc_rota[last_off:current_strike, 1], 100)
 
-            acc_x_plot, = plt.plot(np.mean(acc_x_step_array, axis=0))
-            acc_y_plot, = plt.plot(np.mean(acc_y_step_array, axis=0))
+            acc_x_plot_ori, = plt.plot(np.mean(acc_x_step_array_ori, axis=0), 'r')
+            acc_y_plot_ori, = plt.plot(np.mean(acc_y_step_array_ori, axis=0), 'r')
+            acc_x_plot, = plt.plot(np.mean(acc_x_step_array, axis=0), 'y')
+            acc_y_plot, = plt.plot(np.mean(acc_y_step_array, axis=0), 'y')
 
-        legend_names = ['x-axis', 'y-axis']
-        plt.legend([acc_x_plot, acc_y_plot], legend_names, fontsize=FONT_SIZE, frameon=True,
-                   bbox_to_anchor=(-2.6, 0.75))
+        legend_names = ['ori', 'rotated']
+        plt.legend([acc_x_plot_ori, acc_x_plot], legend_names, fontsize=FONT_SIZE, frameon=True,
+                   bbox_to_anchor=(-2.6, 0.6))
+        plt.text(-330, 10, self.sub_folder, fontdict=FONT_DICT)
         plt.show()
 
     def backward_fpa_estimation(self, step_result_df, summary_result_df):
@@ -100,8 +108,7 @@ class InitFPA:
             gait_param_path = self.base_path + 'param_of_' + TRIAL_NAMES_HS[trial_id] + '.csv'
             gait_param_df = pd.read_csv(gait_param_path, index_col=False)
             FPA_true = gait_param_df['FPA_true'].values.reshape(-1, 1)
-            steps, stance_phase_flag = self.initalize_steps_and_stance_phase(gait_param_df, stance_after_strike=20,
-                                                                             stance_before_off=25)
+            steps, stance_phase_flag = self.initalize_steps_and_stance_phase(gait_data_df, gait_param_df)
             euler_angles_esti = self.get_euler_angles_gradient_decent_from_stance(
                 gait_data_df, stance_phase_flag)
 
@@ -119,8 +126,8 @@ class InitFPA:
             # plt.show()
 
             acc_IMU_rotated = self.get_rotated_acc(self._placement_R_foot_sensor, gait_data_df, euler_angles_esti)
-            FPA_estis = self.get_FPA_via_acc_before_strike_ratio_portion_of_swing(acc_IMU_rotated, steps,
-                                                                                  start_percent=0.6, end_percent=1.2)
+            FPA_estis = self.get_FPA_via_acc_before_strike_ratio_portion_of_swing(
+                acc_IMU_rotated, steps, start_percent=0.6, end_percent=1.2)     # best combos are [0.5, 1], [0.6, 1.2]
             FPA_tbme = gait_param_df['FPA_tbme']
 
             step_flags = np.zeros(FPA_estis.shape)
@@ -138,6 +145,7 @@ class InitFPA:
             fpa_true_list.extend(fpa_true_temp[3:-3])
             fpa_esti_list.extend(fpa_esti_temp[3:-3])
         self.plot_sub_result(fpa_true_list, fpa_esti_list)
+        plt.savefig('../3_FPA_Haisheng/result_conclusion/' + self.test_date + '/plots/' + self.sub_folder + '.png')
         pearson_coeff, RMSE, mean_error = Evaluation._get_all_scores(
             np.array(fpa_true_list), np.array(fpa_esti_list), precision=3)
         summary_result_df = Evaluation.insert_prediction_result(
@@ -157,15 +165,15 @@ class InitFPA:
 
     def param_optimizer(self):
         summary_result_df = pd.DataFrame()
-        for param in np.arange(0.005, 0.015, 0.002):
+        for param in np.arange(2, 16, 2):
             print(param)
-            for param2 in np.arange(25, 30, 25):
+            for param2 in [0]:
                 fpa_true_list, fpa_esti_list = [], []
                 for i_sub in range(len(SUB_NAMES_HS)):
                     sub_folder = SUB_NAMES_HS[i_sub]
                     self.init_sub_info(sub_folder)
 
-                    for trial_id in range(len(TRIAL_NAMES_HS)):
+                    for trial_id in range(4, 7):
                         self.current_trial = TRIAL_NAMES_HS[trial_id]
 
                         gait_data_path = self.base_path + TRIAL_NAMES_HS[trial_id] + '.csv'
@@ -174,14 +182,13 @@ class InitFPA:
                         gait_param_path = self.base_path + 'param_of_' + TRIAL_NAMES_HS[trial_id] + '.csv'
                         gait_param_df = pd.read_csv(gait_param_path, index_col=False)
                         FPA_true = gait_param_df['FPA_true'].values.reshape(-1, 1)
-                        steps, stance_phase_flag = self.initalize_steps_and_stance_phase(
-                            gait_param_df, stance_after_strike=20, stance_before_off=25)
+                        steps, stance_phase_flag = self.initalize_steps_and_stance_phase(gait_data_df, gait_param_df)
 
                         euler_angles_esti = self.get_euler_angles_gradient_decent_from_stance(
                             gait_data_df, stance_phase_flag, base_correction_coeff=0.01)
 
                         acc_IMU_rotated = self.get_rotated_acc(self._placement_R_foot_sensor, gait_data_df,
-                                                               euler_angles_esti)
+                                                               euler_angles_esti, acc_cut_off_fre=param)
                         FPA_estis = self.get_FPA_via_acc_before_strike_ratio_portion_of_swing(acc_IMU_rotated, steps,
                                                                                               start_percent=0.6,
                                                                                               end_percent=1.2)
@@ -236,9 +243,7 @@ class InitFPA:
         gyr_IMU = gait_data_df[['gyr_x', 'gyr_y', 'gyr_z']].values
         data_len = gait_data_df.shape[0]
 
-        gyr_IMU_moved = np.zeros(gyr_IMU.shape)
-        gyr_IMU_moved[:-1, :] = gyr_IMU[1:, :]
-        gyr_value = (gyr_IMU + gyr_IMU_moved) / 2 * delta_t
+        gyr_value = gyr_IMU * delta_t
         euler_angles_esti = np.zeros([data_len, 3])
 
         last_stance_end = 0  # the end of gyr integration
@@ -312,7 +317,7 @@ class InitFPA:
 
         # gyr_IMU_moved = np.zeros(gyr_IMU.shape)
         # gyr_IMU_moved[:-1, :] = gyr_IMU[1:, :]
-        angle_augments = gyr_IMU * delta_t
+        gyr_value = gyr_IMU * delta_t
         euler_angles_esti = np.zeros([data_len, 3])
         acc_IMU_norm = norm(acc_IMU, axis=1)
 
@@ -322,14 +327,17 @@ class InitFPA:
             """1. initialize at the end of stance phase"""
             if stance_phase_flag[i_sample] and not stance_phase_flag[i_sample + 1]:
                 gravity_vector = acc_IMU[i_sample, :]
-                gravity_vector_norm = norm(gravity_vector)
-                euler_angles_esti[i_sample, 0] = np.arcsin(gravity_vector[1] / gravity_vector_norm)  # axis 0
-                euler_angles_esti[i_sample, 1] = - np.arcsin(gravity_vector[0] / gravity_vector_norm)  # axis 1
+                euler_angles_esti[i_sample, 0] = np.arctan2(gravity_vector[1], gravity_vector[2])  # axis 0
+                euler_angles_esti[i_sample, 1] = np.arctan2(-gravity_vector[0], np.sqrt(gravity_vector[1]**2 + gravity_vector[2]**2))  # axis 1
 
                 """2. Gyr integration"""
                 for j_sample in range(i_sample - 1, last_stance_end, -1):
-                    euler_angles_esti[j_sample, :] = euler_angles_esti[j_sample + 1, :] - angle_augments[j_sample + 1,
-                                                                                          :]
+                    roll, pitch, yaw = euler_angles_esti[j_sample+1, :]
+                    transfer_mat = np.mat([[1, sin(roll) * tan(pitch), cos(roll) * tan(pitch)],
+                                           [0, cos(roll), -sin(roll)],
+                                           [0, sin(roll) / cos(pitch), cos(roll) / cos(pitch)]])
+                    angle_augment = np.matmul(transfer_mat, gyr_value[j_sample + 1, :].T)
+                    euler_angles_esti[j_sample, :] = euler_angles_esti[j_sample + 1, :] - angle_augment
 
                     """3. If j_sample is still stance phase"""
                     if stance_phase_flag[j_sample]:
@@ -404,8 +412,10 @@ class InitFPA:
     @staticmethod
     def get_rotated_acc(placement_R_foot_sensor, gait_data_df, euler_angles, acc_cut_off_fre=None):
         acc_IMU = gait_data_df[['acc_x', 'acc_y', 'acc_z']].values
+
         if acc_cut_off_fre is not None:
             acc_IMU = StrikeOffDetectorIMU.data_filt(acc_IMU, acc_cut_off_fre, HAISHENG_SENSOR_SAMPLE_RATE)
+
         acc_IMU_rotated = np.zeros(acc_IMU.shape)
         data_len = acc_IMU.shape[0]
         for i_sample in range(data_len):
@@ -417,7 +427,13 @@ class InitFPA:
         return acc_IMU_rotated
 
     @staticmethod
-    def initalize_steps_and_stance_phase(gait_param_df, stance_after_strike=20, stance_before_off=25):
+    def initalize_steps_and_stance_phase(gait_data_df, gait_param_df, sample_after_thd=10):
+        """The name "stance phase" is not accurate. It starts from gyr < thd + sample_after_thd sample,
+         ends in the middle of the stance"""
+
+        gyr_all = gait_data_df[['gyr_x', 'gyr_y', 'gyr_z']]
+        gyr_magnitude = norm(gyr_all, axis=1)
+
         stance_phase_sample_thd_lower = 0.3 * HAISHENG_SENSOR_SAMPLE_RATE
         stance_phase_sample_thd_higher = 1 * HAISHENG_SENSOR_SAMPLE_RATE
         # get stance phase
@@ -439,7 +455,14 @@ class InitFPA:
                     continue
                 off = off[0]
                 steps.append([int(strike), int(off)])
-                stance_phase_flag[strike + stance_after_strike:off - stance_before_off] = True
+                flag_start = strike + 20
+                flag_end = int(round((strike + off) / 2))
+                for i_sample in range(strike, off):
+                    if all(gyr_magnitude[i_sample:i_sample+5] < 1):
+                        flag_start = i_sample + sample_after_thd
+                        break
+
+                stance_phase_flag[flag_start:flag_end] = True
                 last_off = off
             else:
                 abandoned_step_num += 1
@@ -455,6 +478,22 @@ class InitFPA:
             the_FPA_esti = np.arctan2(-acc_sum[0], -acc_sum[1]) * 180 / np.pi
             the_sample = int((step[0] + step[1]) / 2)
             FPA_estis[the_sample] = the_FPA_esti
+        return FPA_estis
+
+    def get_FPA_via_acc_angle_curve(self, acc_IMU_rotated, steps, start_percent, end_percent):
+        data_len = acc_IMU_rotated.shape[0]
+        FPA_estis = np.zeros([data_len])
+
+        # FPA_estis = np.arctan2(-acc_IMU_rotated[:, 0], -acc_IMU_rotated[:, 1]) * 180 / np.pi
+
+        for i_step in range(len(steps) - 1):
+            current_step, next_step = steps[i_step], steps[i_step + 1]
+            swing_phase_len = next_step[0] - current_step[1]
+            start_sample = int(round(swing_phase_len * start_percent))
+            end_sample = int(round(swing_phase_len * end_percent))
+            acc_clip = acc_IMU_rotated[current_step[1] + start_sample:current_step[1] + end_sample, 0:2]
+            FPA_estis[current_step[1] + start_sample:current_step[1] + end_sample] =\
+                np.arctan2(-acc_clip[:, 0], -acc_clip[:, 1]) * 180 / np.pi
         return FPA_estis
 
     def get_FPA_via_acc_before_strike_ratio_portion_of_swing(self, acc_IMU_rotated, steps, start_percent, end_percent):
