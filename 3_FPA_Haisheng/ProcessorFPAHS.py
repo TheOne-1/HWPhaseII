@@ -12,6 +12,7 @@ from DataProcessorHS import DataInitializerHS
 from Evaluation import Evaluation
 from Processor import Processor
 import os
+import copy
 
 
 class InitFPA:
@@ -39,6 +40,68 @@ class InitFPA:
         self.save_result_df('../3_FPA_Haisheng/result_conclusion/' + self.test_date + '/step_result', step_result_df)
         self.save_result_df('../3_FPA_Haisheng/result_conclusion/' + self.test_date + '/summary_result',
                             summary_result_df)
+
+    def backward_fpa_estimation(self, step_result_df, summary_result_df):
+        fpa_true_list, fpa_esti_list = [], []
+        for trial_id in range(len(TRIAL_NAMES_HS)):
+            print(TRIAL_NAMES_HS[trial_id])
+            self.current_trial = TRIAL_NAMES_HS[trial_id]
+
+            gait_data_path = self.base_path + TRIAL_NAMES_HS[trial_id] + '.csv'
+            gait_data_df = pd.read_csv(gait_data_path, index_col=False)
+
+            gait_param_path = self.base_path + 'param_of_' + TRIAL_NAMES_HS[trial_id] + '.csv'
+            gait_param_df = pd.read_csv(gait_param_path, index_col=False)
+            FPA_true = gait_param_df['FPA_true'].values.reshape(-1, 1)
+            steps, stance_phase_flag = self.initalize_steps_and_stance_phase(gait_data_df, gait_param_df)
+            euler_angles_esti = self.get_euler_angles_complementary_from_stance(
+                gait_data_df, stance_phase_flag)
+
+            # euler_angles_esti_1 = self.get_euler_angles_gradient_decent_from_stance(
+            #     gait_data_df, stance_phase_flag)
+            # plt.plot(euler_angles_esti[:, 1])
+            # plt.plot(euler_angles_esti_1[:, 1])
+            # plt.show()
+            # euler_angles_esti_2 = self.get_euler_angles_gradient_decent_from_stance_1(
+            #     gait_data_df, stance_phase_flag)
+            # euler_angles_esti_3 = self.get_euler_angles_pure_acc(gait_data_df)
+            # plt.figure()
+            # plt.plot(euler_angles_esti_1[:, 1])
+            # plt.plot(euler_angles_esti[:, 1])
+            # plt.plot(euler_angles_esti_2[:, 1])
+            # # plt.plot(euler_angles_esti_3[:, 1])
+            # plt.plot(stance_phase_flag*0.2)
+            # plt.show()
+
+            acc_IMU_rotated = self.get_rotated_acc(self._placement_R_foot_sensor, gait_data_df, euler_angles_esti)
+            FPA_estis = self.get_FPA_via_max_acc(acc_IMU_rotated, steps, start_percent=0.6, end_percent=1.2)
+            # FPA_estis = self.get_FPA_via_acc_before_strike_ratio_portion_of_swing(
+            #     acc_IMU_rotated, steps, start_percent=0.6, end_percent=1.2)     # best combos are [0.5, 1], [0.6, 1.2]
+            FPA_tbme = gait_param_df['FPA_tbme']
+
+            step_flags = np.zeros(FPA_estis.shape)
+            for step in steps:
+                step_flags[step[0]] = 1  # strike
+                step_flags[step[1]] = 2  # off
+
+            step_trial_result_df = pd.DataFrame(np.column_stack([step_flags, FPA_true, FPA_estis, FPA_tbme]))
+            step_trial_result_df.columns = ['step_flag', 'FPA_true', 'FPA_estis', 'FPA_tbme']
+            step_trial_result_df.insert(0, 'trial_id', trial_id)
+            step_trial_result_df.insert(0, 'sub_name', self.sub_folder)
+            step_result_df = step_result_df.append(step_trial_result_df, sort=False)
+
+            fpa_true_temp, fpa_esti_temp = ProcessorFPA.compare_result(FPA_estis, FPA_true, steps)
+            fpa_true_list.extend(fpa_true_temp[3:-3])
+            fpa_esti_list.extend(fpa_esti_temp[3:-3])
+        self.plot_sub_result(fpa_true_list, fpa_esti_list)
+        plt.savefig('../3_FPA_Haisheng/result_conclusion/' + self.test_date + '/plots/' + self.sub_folder + '.png')
+        pearson_coeff, RMSE, mean_error = Evaluation._get_all_scores(
+            np.array(fpa_true_list), np.array(fpa_esti_list), precision=3)
+        summary_result_df = Evaluation.insert_prediction_result(
+            summary_result_df, self.sub_folder, pearson_coeff, RMSE, mean_error)
+        return step_result_df, summary_result_df
+
+        # save the sub result
 
     def show_step_acc(self):
         """
@@ -95,64 +158,6 @@ class InitFPA:
                    bbox_to_anchor=(-2.6, 0.6))
         plt.text(-330, 10, self.sub_folder, fontdict=FONT_DICT)
         plt.show()
-
-    def backward_fpa_estimation(self, step_result_df, summary_result_df):
-        fpa_true_list, fpa_esti_list = [], []
-        for trial_id in range(len(TRIAL_NAMES_HS)):
-            print(TRIAL_NAMES_HS[trial_id])
-            self.current_trial = TRIAL_NAMES_HS[trial_id]
-
-            gait_data_path = self.base_path + TRIAL_NAMES_HS[trial_id] + '.csv'
-            gait_data_df = pd.read_csv(gait_data_path, index_col=False)
-
-            gait_param_path = self.base_path + 'param_of_' + TRIAL_NAMES_HS[trial_id] + '.csv'
-            gait_param_df = pd.read_csv(gait_param_path, index_col=False)
-            FPA_true = gait_param_df['FPA_true'].values.reshape(-1, 1)
-            steps, stance_phase_flag = self.initalize_steps_and_stance_phase(gait_data_df, gait_param_df)
-            euler_angles_esti = self.get_euler_angles_gradient_decent_from_stance(
-                gait_data_df, stance_phase_flag)
-
-            # euler_angles_esti_1 = self.get_euler_angles_gradient_decent(
-            #     gait_data_df, stance_phase_flag)
-            # euler_angles_esti_2 = self.get_euler_angles_gradient_decent_from_stance_1(
-            #     gait_data_df, stance_phase_flag)
-            # euler_angles_esti_3 = self.get_euler_angles_pure_acc(gait_data_df)
-            # plt.figure()
-            # plt.plot(euler_angles_esti_1[:, 1])
-            # plt.plot(euler_angles_esti[:, 1])
-            # plt.plot(euler_angles_esti_2[:, 1])
-            # # plt.plot(euler_angles_esti_3[:, 1])
-            # plt.plot(stance_phase_flag*0.2)
-            # plt.show()
-
-            acc_IMU_rotated = self.get_rotated_acc(self._placement_R_foot_sensor, gait_data_df, euler_angles_esti)
-            FPA_estis = self.get_FPA_via_acc_before_strike_ratio_portion_of_swing(
-                acc_IMU_rotated, steps, start_percent=0.6, end_percent=1.2)     # best combos are [0.5, 1], [0.6, 1.2]
-            FPA_tbme = gait_param_df['FPA_tbme']
-
-            step_flags = np.zeros(FPA_estis.shape)
-            for step in steps:
-                step_flags[step[0]] = 1  # strike
-                step_flags[step[1]] = 2  # off
-
-            step_trial_result_df = pd.DataFrame(np.column_stack([step_flags, FPA_true, FPA_estis, FPA_tbme]))
-            step_trial_result_df.columns = ['step_flag', 'FPA_true', 'FPA_estis', 'FPA_tbme']
-            step_trial_result_df.insert(0, 'trial_id', trial_id)
-            step_trial_result_df.insert(0, 'sub_name', self.sub_folder)
-            step_result_df = step_result_df.append(step_trial_result_df, sort=False)
-
-            fpa_true_temp, fpa_esti_temp = ProcessorFPA.compare_result(FPA_estis, FPA_true, steps)
-            fpa_true_list.extend(fpa_true_temp[3:-3])
-            fpa_esti_list.extend(fpa_esti_temp[3:-3])
-        self.plot_sub_result(fpa_true_list, fpa_esti_list)
-        plt.savefig('../3_FPA_Haisheng/result_conclusion/' + self.test_date + '/plots/' + self.sub_folder + '.png')
-        pearson_coeff, RMSE, mean_error = Evaluation._get_all_scores(
-            np.array(fpa_true_list), np.array(fpa_esti_list), precision=3)
-        summary_result_df = Evaluation.insert_prediction_result(
-            summary_result_df, self.sub_folder, pearson_coeff, RMSE, mean_error)
-        return step_result_df, summary_result_df
-
-        # save the sub result
 
     def plot_sub_result(self, fpa_true_list, fpa_esti_list):
         # show the sub result
@@ -304,7 +309,7 @@ class InitFPA:
         return euler_angles_esti
 
     @staticmethod
-    def get_euler_angles_complementary_from_stance(gait_data_df, stance_phase_flag, base_correction_coeff=0.15):
+    def get_euler_angles_complementary_from_stance(gait_data_df, stance_phase_flag, base_correction_coeff=0.2):
         """
         start initialization from the end of each stance phase
         :return:
@@ -319,7 +324,6 @@ class InitFPA:
         # gyr_IMU_moved[:-1, :] = gyr_IMU[1:, :]
         gyr_value = gyr_IMU * delta_t
         euler_angles_esti = np.zeros([data_len, 3])
-        acc_IMU_norm = norm(acc_IMU, axis=1)
 
         last_stance_end = 0  # the end of gyr integration
 
@@ -342,9 +346,10 @@ class InitFPA:
                     """3. If j_sample is still stance phase"""
                     if stance_phase_flag[j_sample]:
                         correction_coeff = base_correction_coeff
-                        pitch_correction = - np.arcsin(acc_IMU[j_sample, 0] / acc_IMU_norm[j_sample])
-                        roll_correction = np.arcsin(
-                            acc_IMU[j_sample, 1] / (acc_IMU_norm[j_sample] * cos(pitch_correction)))
+
+                        roll_correction = np.arctan2(acc_IMU[j_sample, 1], acc_IMU[j_sample, 2])
+                        pitch_correction = np.arctan2(-acc_IMU[j_sample, 0], np.sqrt(acc_IMU[j_sample, 1] ** 2 + acc_IMU[j_sample, 2] ** 2))
+
                         euler_angles_esti[j_sample, 0] = euler_angles_esti[j_sample, 0] + correction_coeff * \
                                                          (roll_correction - euler_angles_esti[j_sample, 0])
                         euler_angles_esti[j_sample, 1] = euler_angles_esti[j_sample, 1] + correction_coeff * \
@@ -480,11 +485,26 @@ class InitFPA:
             FPA_estis[the_sample] = the_FPA_esti
         return FPA_estis
 
-    def get_FPA_via_acc_angle_curve(self, acc_IMU_rotated, steps, start_percent, end_percent):
+    @staticmethod
+    def smooth(x, window_len=11, window='hamming'):
+        # if not window in ['flat', 'hanning', 'hamming', 'bartlett', 'blackman']:
+        if window == 'flat':  # moving average
+            w = np.ones(window_len, 'd')
+        else:
+            w = eval('np.' + window + '(window_len)')
+
+        y = np.convolve(w / w.sum(), x, mode='same')
+        return y
+
+    def get_FPA_via_max_acc(self, acc_IMU_rotated, steps, start_percent, end_percent):
         data_len = acc_IMU_rotated.shape[0]
         FPA_estis = np.zeros([data_len])
 
-        # FPA_estis = np.arctan2(-acc_IMU_rotated[:, 0], -acc_IMU_rotated[:, 1]) * 180 / np.pi
+        acc_IMU_before_filt = copy.deepcopy(acc_IMU_rotated)
+
+        for i_axis in range(2):
+            acc_IMU_rotated[:, i_axis] = self.smooth(acc_IMU_rotated[:, i_axis], 38)
+        planar_acc_norm = norm(acc_IMU_rotated[:, :2], axis=1)
 
         for i_step in range(len(steps) - 1):
             current_step, next_step = steps[i_step], steps[i_step + 1]
@@ -492,8 +512,25 @@ class InitFPA:
             start_sample = int(round(swing_phase_len * start_percent))
             end_sample = int(round(swing_phase_len * end_percent))
             acc_clip = acc_IMU_rotated[current_step[1] + start_sample:current_step[1] + end_sample, 0:2]
-            FPA_estis[current_step[1] + start_sample:current_step[1] + end_sample] =\
-                np.arctan2(-acc_clip[:, 0], -acc_clip[:, 1]) * 180 / np.pi
+            acc_norm_clip = planar_acc_norm[current_step[1] + start_sample:current_step[1] + end_sample]
+            acc_norm_max_arg = np.argmax(acc_norm_clip)
+
+            # acc_max_x_arg = np.argmax(np.abs(acc_clip[:, 0]))
+            acc_max_x = acc_clip[acc_norm_max_arg, 0]
+            # acc_max_y_arg = np.argmax(np.abs(acc_clip[:, 1]))
+            acc_max_y = acc_clip[acc_norm_max_arg, 1]
+
+            # acc_IMU_before_filt_clip = acc_IMU_before_filt[current_step[1] + start_sample:current_step[1] + end_sample, 0:2]
+            # plt.figure()
+            # plt.plot(acc_clip)
+            # plt.plot(acc_IMU_before_filt_clip)
+            # plt.plot(acc_norm_max_arg, acc_max_x, 'x')
+            # plt.plot(acc_norm_max_arg, acc_max_y, 'x')
+            # plt.show()
+
+            the_FPA_esti = np.arctan2(-acc_max_x, -acc_max_y) * 180 / np.pi
+            the_sample = int((next_step[0] + next_step[1]) / 2)
+            FPA_estis[the_sample] = the_FPA_esti
         return FPA_estis
 
     def get_FPA_via_acc_before_strike_ratio_portion_of_swing(self, acc_IMU_rotated, steps, start_percent, end_percent):

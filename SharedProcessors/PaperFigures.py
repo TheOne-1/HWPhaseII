@@ -127,29 +127,43 @@ class ErrorBarFigure(BaseFigure):
                    handleheight=1.3, bbox_to_anchor=(0.43, 1.03), ncol=1, fontsize=FONT_SIZE, frameon=False)
         plt.tight_layout(rect=[0, 0, 1, 1])
 
-    # @staticmethod
-    # def print_accuracy_paper(result_all_df):
+    @staticmethod
+    def print_accuracy_paper(result_all_df, digits=1):
+        error_tbme = result_all_df['FPA_true'] - result_all_df['FPA_tbme']
+        error_acc_ratio = result_all_df['FPA_true'] - result_all_df['FPA_estis']
+        pvalue_list, ME_tbme, stds_tbme, ME_acc_ratio, stds_acc_ratio, id_list = \
+            ErrorBarFigure.mean_value_ttest(error_tbme, error_acc_ratio, result_all_df, np.mean)
+        for i_trial in range(7):
+            # if ME_acc_ratio[i_trial] > 0:
+            #     print(' ', end='')
+            print(round(ME_acc_ratio[i_trial], digits), end='')
+            print('±' + str(round(stds_acc_ratio[i_trial], digits)), end='\t')
+            # if ME_tbme[i_trial] > 0:
+            #     print(' ', end='')
+            print(round(ME_tbme[i_trial], digits), end='')
+            print('±' + str(round(stds_tbme[i_trial], digits)))
+
 
     @staticmethod
     def compare_accuracy_paper(result_all_df):
         x_locs = [3, 2, 1, 0, 4, 5, 6]
         error_tbme = result_all_df['FPA_true'] - result_all_df['FPA_tbme']
         error_acc_ratio = result_all_df['FPA_true'] - result_all_df['FPA_estis']
-        pvalue_list, RMSE_tbme, stds_tbme, RMSE_acc_ratio, stds_acc_ratio, id_list = \
+        pvalue_list, ME_tbme, stds_tbme, ME_acc_ratio, stds_acc_ratio, id_list = \
             ErrorBarFigure.mean_value_ttest(error_tbme, error_acc_ratio, result_all_df, np.mean)       # ErrorBarFigure.root_mean_fun
 
         plt.figure(figsize=(14, 6))
         ErrorBarFigure.format_plot()
         bars = []
         for i_cate in range(len(id_list)):
-            bars.append(plt.bar(x_locs[i_cate], RMSE_tbme[i_cate], color='orange', width=0.35))
-            ErrorBarFigure.draw_half_ebars(RMSE_tbme[i_cate], stds_tbme[i_cate], x_locs[i_cate],
-                                           bool(np.sign(RMSE_tbme[i_cate])+1))
+            bars.append(plt.bar(x_locs[i_cate], ME_tbme[i_cate], color='orange', width=0.35))
+            ErrorBarFigure.draw_half_ebars(ME_tbme[i_cate], stds_tbme[i_cate], x_locs[i_cate],
+                                           bool(np.sign(ME_tbme[i_cate])+1))
 
         for i_cate in range(len(id_list)):
-            bars.append(plt.bar(x_locs[i_cate] + 0.35, RMSE_acc_ratio[i_cate], color='brown', width=0.35))
-            ErrorBarFigure.draw_half_ebars(RMSE_acc_ratio[i_cate], stds_acc_ratio[i_cate], x_locs[i_cate] + 0.35,
-                                           bool(np.sign(RMSE_acc_ratio[i_cate]) + 1))
+            bars.append(plt.bar(x_locs[i_cate] + 0.35, ME_acc_ratio[i_cate], color='brown', width=0.35))
+            ErrorBarFigure.draw_half_ebars(ME_acc_ratio[i_cate], stds_acc_ratio[i_cate], x_locs[i_cate] + 0.35,
+                                           bool(np.sign(ME_acc_ratio[i_cate]) + 1))
         ax = plt.gca()
         x_tick_loc = [i + 0.175 for i in range(len(id_list))]
         ax.tick_params(labelsize=FONT_DICT['fontsize'])
@@ -158,8 +172,8 @@ class ErrorBarFigure(BaseFigure):
         x_tick_list = ['Large Toe-in', 'Medium Toe-in', 'Small Toe-in', 'Normal', 'Small Toe-out', 'Medium Toe-out', 'Large Toe-out']
         ax.set_xticklabels(x_tick_list, fontdict=FONT_DICT_X_SMALL)
         ax.set_ylim(-6.2, 6.2)
-        ax.set_yticks(range(-4, 7, 2))
-        y_tick_list = ['-4', '-2', '0', '2', '4', '6']
+        ax.set_yticks(range(-6, 7, 2))
+        y_tick_list = ['-6', '-4', '-2', '0', '2', '4', '6']
         ax.set_yticklabels(y_tick_list, fontdict=FONT_DICT)
         ax.set_xlim(-0.5, 6.86)
         plt.plot([-0.5, 6.86], [0, 0], color='black')
@@ -177,6 +191,7 @@ class ErrorBarFigure(BaseFigure):
 
     @staticmethod
     def mean_value_ttest(true_values, predicted_values, result_all_df, raw_data_operate_fun):
+        """For each trial, calculate the mean value of subject mean"""
         pvalue_list = []
         true_means, true_stds = [], []
         pred_means, pred_stds = [], []

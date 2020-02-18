@@ -37,8 +37,8 @@ for sub_name in SUB_NAMES_HS[:]:
 # ErrorBarFigure.compare_mean_value(result_all_df, 'trial_id', TRIAL_NAMES_HS, 'trial name')
 
 """Figures for new paper"""
-ErrorBarFigure.compare_mean_value_paper(result_all_df)
-ErrorBarFigure.compare_accuracy_paper(result_all_df)
+# ErrorBarFigure.compare_mean_value_paper(result_all_df)
+# ErrorBarFigure.compare_accuracy_paper(result_all_df)
 ErrorBarFigure.print_accuracy_paper(result_all_df)
 plt.show()
 

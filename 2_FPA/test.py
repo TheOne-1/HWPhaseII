@@ -8,7 +8,7 @@ from ProcessorFPA import ProcessorFPA
 import matplotlib.pyplot as plt
 
 
-static_data_path = PROCESSED_DATA_PATH + '\\' + SUB_NAMES[0] + '\\200Hz\\static.csv'
+static_data_path = PROCESSED_DATA_PATH + '\\' + SUB_NAMES[1] + '\\200Hz\\static.csv'
 static_data = pd.read_csv(static_data_path, index_col=False)
 
 data_len = static_data.shape[0]
@@ -30,7 +30,7 @@ mean_meas = np.mean(euler_angles_meas, axis=0)
 print('Orientation difference: ', end='')
 print(mean_esti - mean_meas)
 
-the_radians = np.deg2rad(mean_meas)
+the_radians = np.deg2rad(mean_esti)
 mat_meas_0 = euler2mat(-the_radians[2], -the_radians[1], -the_radians[0], 'szyx')
 print('zyx: ', end='')
 print(np.matmul(mat_meas_0, acc_IMU[0, :].T))
