@@ -503,7 +503,7 @@ class InitFPA:
         acc_IMU_before_filt = copy.deepcopy(acc_IMU_rotated)
 
         for i_axis in range(2):
-            acc_IMU_rotated[:, i_axis] = self.smooth(acc_IMU_rotated[:, i_axis], 38)
+            acc_IMU_rotated[:, i_axis] = self.smooth(acc_IMU_rotated[:, i_axis], 40)
         planar_acc_norm = norm(acc_IMU_rotated[:, :2], axis=1)
 
         for i_step in range(len(steps) - 1):

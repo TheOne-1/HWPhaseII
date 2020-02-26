@@ -114,11 +114,6 @@ class StrikeOffDetectorIMUHS(StrikeOffDetectorIMU):
         if 'last_off' not in locals():
             raise ValueError('First off not found.')
 
-        # # !!!
-        # plt.plot(gyr_x_unfilt)
-        # plt.plot(gyr_x)
-        # plt.show()
-
         # find strikes and offs
         check_win_len = int(1.5 * self._sampling_fre)           # find strike off within this range
         for i_sample in range(last_off+1, data_len):

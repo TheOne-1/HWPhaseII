@@ -7,7 +7,7 @@ from const import SUB_NAMES_HS, TRIAL_NAMES_HS, FPA_NAME_LIST_HS
 from ResultReader import ResultReader
 
 
-test_date = '0210'
+test_date = '0218'
 # ErrorBarFigure.compare_acc(sub_id=6)
 # plt.show()
 
