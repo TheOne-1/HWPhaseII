@@ -18,7 +18,7 @@ class ResultReader:
         return steps
 
     @staticmethod
-    def get_fpas(fpa_name_list, trial_result, steps, steps_to_skip_start, steps_to_skip_end):
+    def get_fpas(fpa_name_list, trial_result, steps, num_of_steps, steps_to_skip_end):
         """
         The only steps with only one non-zero FPA are returned
         :param fpa_name_list:
@@ -28,7 +28,7 @@ class ResultReader:
         fpa_num = len(fpa_name_list)
         step_result_list = []
         abandoned_step_num = 0
-        for step in steps[steps_to_skip_start:len(steps)-steps_to_skip_end]:
+        for step in steps[len(steps) - steps_to_skip_end - num_of_steps:len(steps) - steps_to_skip_end]:
             step_clip = fpa_raw_values[step[0]:step[1]]
             valid_value_flag = np.where(step_clip != 0)
             if len(valid_value_flag[1]) != fpa_num:

@@ -7,11 +7,11 @@ from const import SUB_NAMES_HS, TRIAL_NAMES_HS, FPA_NAME_LIST_HS
 from ResultReader import ResultReader
 
 
-test_date = '0218'
+test_date = '0227'
 # ErrorBarFigure.compare_acc(sub_id=6)
 # plt.show()
 
-steps_to_skip_start, steps_to_skip_end = 7, 2
+steps_to_skip_start, steps_to_skip_end = 50, 20
 result_raw_df = pd.read_csv('../3_FPA_Haisheng/result_conclusion/' + test_date + '/step_result.csv', index_col=False)
 result_df_column_names = FPA_NAME_LIST_HS + ['sub_name', 'trial_id']
 result_all_df = pd.DataFrame(columns=result_df_column_names)
