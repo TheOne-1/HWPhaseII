@@ -167,30 +167,10 @@ class ParamInitializerHS:
             param_data_df.insert(len(param_data_df.columns), 'offs_IMU', estimated_offs)
             param_data_df.insert(0, 'vicon_frame', gait_data_df['vicon_frame'])
             FPA_true = self.get_FPA_true_step(gait_data_df, l_FPA_all, l_steps)
-            # FPA_true = self.get_FPA_true_step_average_vector(gait_data_df, l_steps)
             FPA_tbme = self.get_FPA_tbme_step(gait_data_df, l_steps)
             self.insert_param_data(param_data_df, FPA_true, 'FPA_true')
             self.insert_param_data(param_data_df, FPA_tbme, 'FPA_tbme')
             self.save_trial_param(param_data_df, trial_id)
-
-    def get_FPA_true_step_average_vector(self, gait_data_df, steps):
-        """Angle was calculated in a 3D space, all three axes were used."""
-        FPA_true = []
-        l_toe = gait_data_df[['l_toe_x', 'l_toe_y', 'l_toe_z']].values
-        l_heel = gait_data_df[['l_heel_x', 'l_heel_y', 'l_heel_z']].values
-        forward_vector = l_toe - l_heel
-        for step in steps:
-            sample_20_gait_phase = int(round(step[0] + 0.2 * (step[1] - step[0])))
-            sample_80_gait_phase = int(round(step[0] + 0.8 * (step[1] - step[0])))
-            mean_vector = np.mean(forward_vector[sample_20_gait_phase:sample_80_gait_phase, :], axis=0)
-
-            # FPA_step_1 = - 180 / np.pi * np.arctan2(mean_vector[0], mean_vector[1])
-            FPA_step = - np.sign(mean_vector[0]) * 180 / np.pi * np.arccos(mean_vector[1]/norm(mean_vector))
-
-            middle_sample = round((step[0] + step[1]) / 2)
-            marker_frame = gait_data_df.loc[middle_sample, 'vicon_frame']
-            FPA_true.append([FPA_step, marker_frame])
-        return FPA_true
 
     @staticmethod
     def get_strike_off_from_imu(gait_data_df, param_data_df, trial_name, check_strike_off=True,
@@ -240,22 +220,19 @@ class ParamInitializerHS:
         return FPA_tbmes
 
     def get_FPA_true_step(self, gait_data_df, FPA_all, steps):
+        """FPA is computed in XY plane"""
         FPA_true = []
-
-        # plt.figure()
-        # plt.plot(FPA_all)
+        strike_delay, off_delay = 0, -5
 
         for step in steps:
+            step[0] += strike_delay
+            step[1] += off_delay
             sample_20_gait_phase = int(round(step[0] + 0.2 * (step[1] - step[0])))
             sample_80_gait_phase = int(round(step[0] + 0.8 * (step[1] - step[0])))
             FPA_step = np.mean(FPA_all[sample_20_gait_phase:sample_80_gait_phase])
             middle_sample = round((step[0] + step[1]) / 2)
             marker_frame = gait_data_df.loc[middle_sample, 'vicon_frame']
             FPA_true.append([FPA_step, marker_frame])
-
-        #     plt.plot(sample_20_gait_phase, FPA_all[sample_20_gait_phase], 'gx')
-        #     plt.plot(sample_80_gait_phase, FPA_all[sample_80_gait_phase], 'rx')
-        # plt.show()
 
         return FPA_true
 
