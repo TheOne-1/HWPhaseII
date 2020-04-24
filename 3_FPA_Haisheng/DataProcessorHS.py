@@ -3,7 +3,7 @@ from HaishengSensorReader import HaishengSensorReader
 import pandas as pd
 import matplotlib.pyplot as plt
 from const import DATA_PATH_HS, SUB_AND_TRIALS_HS, DATA_COLUMNS_IMU, MARKERS_HS, SUB_SELECTED_SPEEDS, \
-    TRIAL_NAMES_HS, HAISHENG_SENSOR_SAMPLE_RATE, COLUMN_NAMES_HAISHENG, SUB_TRIAL_NAME_SPECIAL,\
+    TRIAL_NAMES_HS, HAISHENG_SENSOR_SAMPLE_RATE, COLUMN_NAMES_HAISHENG, SUB_TRIAL_NAME_SPECIAL, \
     SUB_TRIAL_NUM, VICON_FOLDER_2_SUB
 import xlrd
 import textract
@@ -66,7 +66,7 @@ class StrikeOffDetectorIMUHS(StrikeOffDetectorIMU):
         for peak in peaks:
             find_stance_start = max(stance_check_win, peak - 40)
             for i_sample in range(find_stance_start, peak):
-                if all(abs(data_clip[i_sample-stance_check_win:i_sample]) < stance_thd):
+                if all(abs(data_clip[i_sample - stance_check_win:i_sample]) < stance_thd):
                     peaks_after_stance.append(peak)
                     break
 
@@ -105,7 +105,7 @@ class StrikeOffDetectorIMUHS(StrikeOffDetectorIMU):
             clip_end = (i_clip + 1) * clip_len + start_buffer
 
             peaks_after_stance = self.find_peak_after_stance(gyr_x[clip_start:clip_end], height=off_gyr_thd,
-                                                         prominence=off_gyr_prominence)
+                                                             prominence=off_gyr_prominence)
             if len(peaks_after_stance) != 0:
                 last_off = peaks_after_stance[0] + off_delay + i_clip * clip_len + start_buffer
                 off_list.append(last_off)
@@ -114,11 +114,12 @@ class StrikeOffDetectorIMUHS(StrikeOffDetectorIMU):
             raise ValueError('First off not found.')
 
         # find strikes and offs
-        check_win_len = int(1.5 * self._sampling_fre)           # find strike off within this range
-        for i_sample in range(last_off+1, data_len):
+        check_win_len = int(1.5 * self._sampling_fre)  # find strike off within this range
+        for i_sample in range(last_off + 1, data_len):
             if i_sample - last_off > check_win_len:
                 try:
-                    peaks, _ = find_peaks(gyr_x[last_off:i_sample], height=strike_gyr_thd, prominence=strike_gyr_prominence)
+                    peaks, _ = find_peaks(gyr_x[last_off:i_sample], height=strike_gyr_thd,
+                                          prominence=strike_gyr_prominence)
                     peaks_after_stance = self.find_peak_after_stance(gyr_x[last_off:i_sample], height=off_gyr_thd,
                                                                      prominence=off_gyr_prominence)
 
@@ -126,9 +127,73 @@ class StrikeOffDetectorIMUHS(StrikeOffDetectorIMU):
                     off_list.append(peaks_after_stance[0] + last_off + off_delay)
                     last_off = off_list[-1]
                 except IndexError as e:
-                    if 2e3 < i_sample < 1e4:
-                        print(i_sample)
-                    last_off = last_off + int(self._sampling_fre * 0.4)     # skip this step
+                    last_off = last_off + int(self._sampling_fre * 0.4)  # skip this step
+
+        if strike_list[-1] > data_len:
+            strike_list.pop()
+        if off_list[-1] > data_len:
+            off_list.pop()
+        return strike_list, off_list
+
+
+class StrikeOffDetectorIMU_HS_Overground(StrikeOffDetectorIMUHS):
+    """For overground walking test, precise detection of first step strike off is very important."""
+
+    def find_peak_after_stance(self, data_clip, height, width=None, prominence=None):
+        """
+        find the maximum peak
+        :return:
+        """
+        peaks, properties = signal.find_peaks(data_clip, width=width, height=height, prominence=prominence)
+
+        stance_check_win = 10
+        stance_thd = 1
+
+        peaks_after_stance = []
+        for peak in peaks:
+            find_stance_start = max(stance_check_win, peak - 40)
+            for i_sample in range(find_stance_start, peak):
+                if all(abs(data_clip[i_sample - stance_check_win:i_sample]) < stance_thd):
+                    peaks_after_stance.append(peak)
+                    break
+
+        return peaks_after_stance
+
+    def get_walking_strike_off(self, strike_delay, off_delay, cut_off_fre_strike_off=6):
+        strike_gyr_thd = 0
+        strike_gyr_prominence = 0.1
+        off_gyr_thd = 2  # threshold the minimum peak of medio-lateral heel strike
+        off_gyr_prominence = 2
+
+        gyr_data = self.get_IMU_data(acc=False, gyr=True).values
+        gyr_x_unfilt = - gyr_data[:, 0]
+        gyr_x = self.data_filt_left(gyr_x_unfilt, cut_off_fre_strike_off, self._sampling_fre)
+
+        data_len = gyr_data.shape[0]
+        strike_list, off_list = [], []
+
+        off_check_len = 50
+        strike_off_distance = 20
+        strike_check_len = 100
+        move_len = 10
+        i_sample = 0
+        # check_win_len = int(1.5 * self._sampling_fre)           # find strike off within this range
+        while i_sample < data_len - 300:
+            peaks_after_stance = self.find_peak_after_stance(gyr_x[i_sample:i_sample + off_check_len], height=off_gyr_thd,
+                                                             prominence=off_gyr_prominence)
+            # if a peak found after stance, set it as off and continue to find the next peak as strike
+            if len(peaks_after_stance):
+                off_sample = peaks_after_stance[0] + i_sample
+                peaks_after_off, _ = find_peaks(
+                    gyr_x[off_sample + strike_off_distance:off_sample + strike_off_distance + strike_check_len],
+                    height=strike_gyr_thd, prominence=strike_gyr_prominence)
+                i_sample = off_sample + move_len
+                if len(peaks_after_off):
+                    off_list.append(off_sample + off_delay)
+                    strike_list.append(peaks_after_off[0] + off_sample + strike_off_distance + strike_delay)
+                    i_sample = strike_list[-1] + move_len
+            else:
+                i_sample += move_len
 
         if strike_list[-1] > data_len:
             strike_list.pop()
@@ -161,7 +226,8 @@ class ParamInitializerHS:
             param_data = np.column_stack([l_strikes, l_offs, l_FPA_all])
             param_data_df = pd.DataFrame(param_data)
             param_data_df.columns = ['l_strikes', 'l_offs', 'l_FPA_all']
-            estimated_strikes, estimated_offs = ParamInitializerHS.get_strike_off_from_imu(gait_data_df, param_data_df, TRIAL_NAMES_HS[trial_id])
+            estimated_strikes, estimated_offs = ParamInitializerHS.get_strike_off_from_imu(gait_data_df, param_data_df,
+                                                                                           TRIAL_NAMES_HS[trial_id])
 
             param_data_df.insert(len(param_data_df.columns), 'strikes_IMU', estimated_strikes)
             param_data_df.insert(len(param_data_df.columns), 'offs_IMU', estimated_offs)
@@ -175,10 +241,12 @@ class ParamInitializerHS:
     @staticmethod
     def get_strike_off_from_imu(gait_data_df, param_data_df, trial_name, check_strike_off=True,
                                 plot_the_strike_off=False):
-        my_detector = StrikeOffDetectorIMUHS(trial_name, gait_data_df, param_data_df, 'l_foot', HAISHENG_SENSOR_SAMPLE_RATE)
-        strike_delay, off_delay = -5, 0   # delay from the peak
+        my_detector = StrikeOffDetectorIMUHS(trial_name, gait_data_df, param_data_df, 'l_foot',
+                                             HAISHENG_SENSOR_SAMPLE_RATE)
+        strike_delay, off_delay = -5, 0  # delay from the peak
         fre = 6
-        estimated_strike_indexes, estimated_off_indexes = my_detector.get_walking_strike_off(strike_delay, off_delay, fre)
+        estimated_strike_indexes, estimated_off_indexes = my_detector.get_walking_strike_off(strike_delay, off_delay,
+                                                                                             fre)
         if plot_the_strike_off:
             my_detector.show_IMU_data_and_strike_off(estimated_strike_indexes, estimated_off_indexes, fre)
         data_len = gait_data_df.shape[0]
@@ -209,7 +277,8 @@ class ParamInitializerHS:
         left_FPAs = - 180 / np.pi * np.arctan2(forward_vector[:, 0], forward_vector[:, 1])
         return left_FPAs
 
-    def get_FPA_tbme_step(self, gait_data_df, steps):
+    @staticmethod
+    def get_FPA_tbme_step(gait_data_df, steps):
         FPA_tbmes = []
         for i_step in range(len(steps)):
             current_step = steps[i_step]
@@ -222,13 +291,10 @@ class ParamInitializerHS:
     def get_FPA_true_step(self, gait_data_df, FPA_all, steps):
         """FPA is computed in XY plane"""
         FPA_true = []
-        strike_delay, off_delay = 0, -5
 
         for step in steps:
-            step[0] += strike_delay
-            step[1] += off_delay
-            sample_20_gait_phase = int(round(step[0] + 0.2 * (step[1] - step[0])))
-            sample_80_gait_phase = int(round(step[0] + 0.8 * (step[1] - step[0])))
+            sample_20_gait_phase = int(round(step[0] + 0.15 * (step[1] - step[0])))
+            sample_80_gait_phase = int(round(step[0] + 0.5 * (step[1] - step[0])))
             FPA_step = np.mean(FPA_all[sample_20_gait_phase:sample_80_gait_phase])
             middle_sample = round((step[0] + step[1]) / 2)
             marker_frame = gait_data_df.loc[middle_sample, 'vicon_frame']
@@ -253,7 +319,6 @@ class ParamInitializerHS:
         off_tuple = np.where(offs == 1)[0]
         steps = []
         abandoned_step_num = 0
-        grf_z = gait_data_df['f_1_z'].values
         last_off = 0
         for strike in strike_tuple:
             if strike < last_off:
@@ -269,6 +334,7 @@ class ParamInitializerHS:
 
         print('For {side} foot steps, {step_num} steps abandonded'.format(side=side, step_num=abandoned_step_num))
         if check_steps:
+            grf_z = gait_data_df['f_1_z'].values
             plt.figure()
             for step in steps:
                 plt.plot(grf_z[step[0]:step[1]])
@@ -401,7 +467,7 @@ class DataInitializerHS:
                 sensor_file_name = SUB_TRIAL_NAME_SPECIAL[self.sub_folder][-1]
 
             sensor_data = self.init_sensor_data_sub(sensor_file_name)
-            sync_params = self.init_sync_point(trial_id_time-1)
+            sync_params = self.init_sync_point(trial_id_time - 1)
             force_data_df = self.init_force_data(trial_id_overall, sync_params)
             sensor_data_df = self.init_sensor_data_trial(sensor_data, sync_params)
             marker_data_df = self.init_marker_data(trial_id_overall, sync_params)
@@ -428,7 +494,6 @@ class DataInitializerHS:
             trial_data_df = pd.concat([force_data_df, marker_data_df, sensor_data_df], axis=1, join='inner')
             self.save_trial_data(trial_data_df, trial_id_order)
             trial_id_order += 1
-
 
     @staticmethod
     def init_placement_offset(sub_folder):
@@ -471,15 +536,15 @@ class DataInitializerHS:
     def init_sensor_data_trial(sensor_data, sync_params):
         # trial_index_0 = sync_params.sensor_sync_start < sensor_data['sample']
         # sensor_data = sensor_data[trial_index_0]
-        sensor_data_clip = sensor_data.iloc[sync_params.sensor_sync_start+1:sync_params.sensor_sync_end+1]
+        sensor_data_clip = sensor_data.iloc[sync_params.sensor_sync_start + 1:sync_params.sensor_sync_end + 1]
         sensor_data_clip = sensor_data_clip.reset_index(drop=True)
         return sensor_data_clip
 
     def init_sync_point(self, i_th_trial):
         sync_params = SyncParams()
-        sync_file_path = DATA_PATH_HS + 'syncpoint/' + self.sub_folder + '/L_34_' + str(i_th_trial+1) + '.docx'
+        sync_file_path = DATA_PATH_HS + 'syncpoint/' + self.sub_folder + '/L_34_' + str(i_th_trial + 1) + '.docx'
         if not os.path.isfile(sync_file_path):
-            sync_file_path = DATA_PATH_HS + 'syncpoint/' + self.sub_folder + '/34_L_' + str(i_th_trial+1) + '.docx'
+            sync_file_path = DATA_PATH_HS + 'syncpoint/' + self.sub_folder + '/34_L_' + str(i_th_trial + 1) + '.docx'
         sync_str = str(textract.process(sync_file_path))
         sync_str_list = sync_str.split('\\n')
         sensor_sync_temp, vicon_sync_temp, walk_sync_temp = [], [], []
@@ -538,7 +603,7 @@ class DataInitializerHS:
                 if sync_params.vicon_sync_start <= i_vicon < sync_params.vicon_sync_end:
                     i_processed = i_vicon - sync_params.vicon_sync_start
                     for i_marker in range(marker_num):
-                        data_array[i_processed, i_marker*3:(1+i_marker)*3] = points[i_marker, :3]
+                        data_array[i_processed, i_marker * 3:(1 + i_marker) * 3] = points[i_marker, :3]
         marker_column_names = [marker + axis for marker in MARKERS_HS for axis in ['_y', '_x', '_z']]
 
         # Change the x-axis direction. The left foot x coordinate should be smaller than that of the right foot.
@@ -549,4 +614,3 @@ class DataInitializerHS:
         marker_data_df = pd.DataFrame(data_array_filtered, columns=marker_column_names)
         marker_data_df = marker_data_df.reset_index(drop=True)
         return marker_data_df
-

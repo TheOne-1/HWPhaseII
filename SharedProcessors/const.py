@@ -71,6 +71,7 @@ with open('..\\configuration.txt', 'r') as config:
 path_index = RAW_DATA_PATH.rfind('\\', 0, len(RAW_DATA_PATH) - 2)
 PROCESSED_DATA_PATH = RAW_DATA_PATH[:path_index] + '\\ProcessedData'
 HUAWEI_DATA_PATH = RAW_DATA_PATH[:path_index] + '\\DataForHuawei'
+LXJ_DATA_PATH = RAW_DATA_PATH[:path_index] + '\\DataForLJX'
 
 # COP_DIFFERENCE = np.array([279.4, 784, 0])  # reset coordinate difference
 
@@ -88,6 +89,7 @@ FILTER_WIN_LEN = 100  # The length of FIR filter window
 
 FONT_SIZE = 18
 FONT_DICT = {'fontsize': FONT_SIZE, 'fontname': 'DejaVu Sans'}
+FONT_DICT_LARGE = {'fontsize': 20, 'fontname': 'DejaVu Sans'}
 FONT_DICT_SMALL = {'fontsize': 16, 'fontname': 'DejaVu Sans'}
 FONT_DICT_X_SMALL = {'fontsize': 14, 'fontname': 'DejaVu Sans'}
 LINE_WIDTH = 2

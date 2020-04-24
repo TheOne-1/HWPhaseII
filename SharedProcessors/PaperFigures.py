@@ -9,6 +9,7 @@ from ProcessorFPAHS import InitFPA
 from DataProcessorHS import DataInitializerHS
 from numpy import sin, cos
 from Processor import Processor
+from scipy.stats import pearsonr
 
 
 class BaseFigure:
@@ -102,7 +103,46 @@ class ErrorBarFigure(BaseFigure):
         ErrorBarFigure.format_plot()
         bars = []
         for i_cate in range(len(id_list)):
-            bars.append(plt.bar(x_locs[i_cate], means_vicon[i_cate], color='grey', width=0.35))
+            bars.append(plt.bar(x_locs[i_cate], means_vicon[i_cate], color='silver', width=0.35))
+            ErrorBarFigure.draw_half_ebars(means_vicon[i_cate], stds_vicon[i_cate], x_locs[i_cate],
+                                           bool(np.sign(means_vicon[i_cate])+1))
+
+        for i_cate in range(len(id_list)):
+            bars.append(plt.bar(x_locs[i_cate] + 0.35, means_acc_ratio[i_cate], color='brown', width=0.35))
+            ErrorBarFigure.draw_half_ebars(means_acc_ratio[i_cate], stds_acc_ratio[i_cate], x_locs[i_cate] + 0.35,
+                                           bool(np.sign(means_acc_ratio[i_cate]) + 1))
+        ax = plt.gca()
+        ErrorBarFigure.acc_p_values(ax, pvalue_list, means_vicon, stds_vicon, means_acc_ratio, stds_acc_ratio)
+        x_tick_loc = [i + 0.175 for i in range(len(id_list))]
+        ax.tick_params(labelsize=FONT_DICT['fontsize'])
+        ax.set_ylabel('Foot Progression Angle (deg)', fontdict=FONT_DICT)
+        ax.set_xticks(x_tick_loc)
+        x_tick_list = ['Large Toe-in', 'Medium Toe-in', 'Small Toe-in', 'Normal', 'Small Toe-out', 'Medium Toe-out', 'Large Toe-out']
+        ax.set_xticklabels(x_tick_list, fontdict=FONT_DICT_X_SMALL)
+        ax.set_yticks(range(-30, 41, 10))
+        y_tick_list = ['-30', '-20', '-10', '0', '10', '20', '30', '40']
+        ax.set_yticklabels(y_tick_list, fontdict=FONT_DICT)
+        ax.set_ylim(-35, 40)
+        ax.set_xlim(-0.5, 6.86)
+        plt.plot([-0.5, 6.86], [0, 0], color='black')
+        plt.legend([bars[0], bars[-1]], ['FPA: Motion Capture', 'FPA: IMU'], handlelength=2,
+                   handleheight=1.3, bbox_to_anchor=(0.3, 1.03), ncol=1, fontsize=FONT_SIZE, frameon=False)
+        plt.tight_layout(rect=[0, 0, 1, 1])
+
+    @staticmethod
+    def compare_mean_value_paper_no_pvalue(result_all_df):
+        """Only compare acc ratio and true FPAs"""
+        x_locs = [3, 2, 1, 0, 4, 5, 6]
+        values_acc_ratio = result_all_df['FPA_estis']
+        values_vicon = result_all_df['FPA_true']
+        pvalue_list, means_vicon, stds_vicon, means_acc_ratio, stds_acc_ratio, id_list = \
+            ErrorBarFigure.mean_value_ttest(values_vicon, values_acc_ratio, result_all_df, np.mean)
+
+        plt.figure(figsize=(14, 6))
+        ErrorBarFigure.format_plot()
+        bars = []
+        for i_cate in range(len(id_list)):
+            bars.append(plt.bar(x_locs[i_cate], means_vicon[i_cate], color='silver', width=0.35))
             ErrorBarFigure.draw_half_ebars(means_vicon[i_cate], stds_vicon[i_cate], x_locs[i_cate],
                                            bool(np.sign(means_vicon[i_cate])+1))
 
@@ -120,28 +160,114 @@ class ErrorBarFigure(BaseFigure):
         ax.set_yticks(range(-30, 41, 10))
         y_tick_list = ['-30', '-20', '-10', '0', '10', '20', '30', '40']
         ax.set_yticklabels(y_tick_list, fontdict=FONT_DICT)
-        ax.set_ylim(-33, 40)
+        ax.set_ylim(-30, 40)
         ax.set_xlim(-0.5, 6.86)
         plt.plot([-0.5, 6.86], [0, 0], color='black')
-        plt.legend([bars[0], bars[-1]], ['FPA: Motion Capture', 'FPA: IMU (Proposed New Method)'], handlelength=2,
-                   handleheight=1.3, bbox_to_anchor=(0.43, 1.03), ncol=1, fontsize=FONT_SIZE, frameon=False)
+        plt.legend([bars[0], bars[-1]], ['FPA: Motion Capture', 'FPA: IMU'], handlelength=2,
+                   handleheight=1.3, bbox_to_anchor=(0.3, 1.03), ncol=1, fontsize=FONT_SIZE, frameon=False)
         plt.tight_layout(rect=[0, 0, 1, 1])
+
+    @staticmethod
+    def compare_mean_value_ASB(result_all_df):
+        """Only compare acc ratio and true FPAs"""
+        x_locs = [3, 2, 1, 0, 4, 5, 6]
+        values_acc_ratio = result_all_df['FPA_estis']
+        values_vicon = result_all_df['FPA_true']
+        pvalue_list, means_vicon, stds_vicon, means_acc_ratio, stds_acc_ratio, id_list = \
+            ErrorBarFigure.mean_value_ttest(values_vicon, values_acc_ratio, result_all_df, np.mean)
+
+        plt.figure(figsize=(10, 6.3))
+        ErrorBarFigure.format_plot()
+        bars = []
+        for i_cate in range(len(id_list)):
+            bars.append(plt.bar(x_locs[i_cate], means_vicon[i_cate], color='silver', width=0.35))
+            ErrorBarFigure.draw_half_ebars(means_vicon[i_cate], stds_vicon[i_cate], x_locs[i_cate],
+                                           bool(np.sign(means_vicon[i_cate])+1))
+
+        for i_cate in range(len(id_list)):
+            bars.append(plt.bar(x_locs[i_cate] + 0.35, means_acc_ratio[i_cate], color='brown', width=0.35))
+            ErrorBarFigure.draw_half_ebars(means_acc_ratio[i_cate], stds_acc_ratio[i_cate], x_locs[i_cate] + 0.35,
+                                           bool(np.sign(means_acc_ratio[i_cate]) + 1))
+        ax = plt.gca()
+        ErrorBarFigure.acc_p_values(ax, pvalue_list, means_vicon, stds_vicon, means_acc_ratio, stds_acc_ratio, -0.25)
+        x_tick_loc = [i + 0.175 for i in range(len(id_list))]
+        ax.tick_params(labelsize=FONT_DICT['fontsize'])
+        ax.set_ylabel('Foot Progression Angle (deg)', fontdict=FONT_DICT)
+        ax.set_xticks(x_tick_loc)
+        x_tick_list = ['Large\nToe-in', 'Medium\nToe-in', 'Small\nToe-in', 'Normal', 'Small\nToe-out', 'Medium\nToe-out', 'Large\nToe-out']
+        ax.set_xticklabels(x_tick_list, fontdict=FONT_DICT)
+        ax.set_yticks(range(-30, 41, 10))
+        y_tick_list = ['-30', '-20', '-10', '0', '10', '20', '30', '40']
+        ax.set_yticklabels(y_tick_list, fontdict=FONT_DICT)
+        ax.set_ylim(-35, 40)
+        ax.set_xlim(-0.5, 6.86)
+        plt.plot([-0.5, 6.86], [0, 0], color='black')
+        plt.legend([bars[0], bars[-1]], ['FPA: Motion Capture', 'FPA: Inertial Sensor'], handlelength=2,
+                   handleheight=1.3, bbox_to_anchor=(0.41, 1.03), ncol=1, fontsize=FONT_SIZE, frameon=False)
+        plt.tight_layout(rect=[0, 0, 1, 1])
+
+    @staticmethod
+    def acc_p_values(ax, pvalue_list, means_vicon, stds_vicon, means_acc_ratio, stds_acc_ratio, x_offset=-0.13):
+        y_loc = []
+        for i_trial in [3, 2, 1, 0, 4, 5, 6]:
+            if means_vicon[i_trial] > 0:
+                y_vicon = means_vicon[i_trial] + stds_vicon[i_trial]
+                y_acc_ratio = means_acc_ratio[i_trial] + stds_acc_ratio[i_trial]
+                y_loc.append(max(y_vicon, y_acc_ratio) + 2)
+            else:
+                y_vicon = means_vicon[i_trial] - stds_vicon[i_trial]
+                y_acc_ratio = means_acc_ratio[i_trial] - stds_acc_ratio[i_trial]
+                y_loc.append(min(y_vicon, y_acc_ratio) - 4.2)
+
+        ax.text(x_offset, y_loc[0], '$\mathit{p}$ = ' + str(round(pvalue_list[0], 2)), fontdict=FONT_DICT)
+        ax.text(1+x_offset, y_loc[1], '$\mathit{p}$ = ' + str(round(pvalue_list[1], 2)), fontdict=FONT_DICT)
+        ax.text(2+x_offset, y_loc[2], '$\mathit{p}$ = ' + str(round(pvalue_list[2], 2)), fontdict=FONT_DICT)
+        ax.text(3+x_offset, y_loc[3], '$\mathit{p}$ = ' + str(round(pvalue_list[3], 2)), fontdict=FONT_DICT)
+        ax.text(4+x_offset, y_loc[4], '$\mathit{p}$ = ' + str(round(pvalue_list[4], 2)), fontdict=FONT_DICT)
+        ax.text(5+x_offset, y_loc[5], '$\mathit{p}$ = ' + str(round(pvalue_list[5], 2)), fontdict=FONT_DICT)
+        ax.text(6+x_offset, y_loc[6], '$\mathit{p}$ = ' + str(round(pvalue_list[6], 2)), fontdict=FONT_DICT)
+
+
 
     @staticmethod
     def print_accuracy_paper(result_all_df, digits=1):
         error_tbme = result_all_df['FPA_true'] - result_all_df['FPA_tbme']
         error_acc_ratio = result_all_df['FPA_true'] - result_all_df['FPA_estis']
         pvalue_list, ME_tbme, stds_tbme, ME_acc_ratio, stds_acc_ratio, id_list = \
-            ErrorBarFigure.mean_value_ttest(error_tbme, error_acc_ratio, result_all_df, np.mean)
-        for i_trial in range(7):
+            ErrorBarFigure.mean_value_ttest(error_tbme, error_acc_ratio, result_all_df, ErrorBarFigure.mean_absolute_fun)       # ErrorBarFigure.root_mean_fun
+
+        for i_trial in [3, 2, 1, 0, 4, 5, 6]:
+            print(round(ME_acc_ratio[i_trial], digits), end='')
+            print(' ± ' + str(round(stds_acc_ratio[i_trial], digits)), end=' deg, ')
+        print()
+
+        for i_trial in [3, 2, 1, 0, 4, 5, 6]:
             # if ME_acc_ratio[i_trial] > 0:
             #     print(' ', end='')
             print(round(ME_acc_ratio[i_trial], digits), end='')
-            print('±' + str(round(stds_acc_ratio[i_trial], digits)), end='\t')
+            print(' ± ' + str(round(stds_acc_ratio[i_trial], digits)), end='\t')
             # if ME_tbme[i_trial] > 0:
             #     print(' ', end='')
             print(round(ME_tbme[i_trial], digits), end='')
-            print('±' + str(round(stds_tbme[i_trial], digits)))
+            print(' ± ' + str(round(stds_tbme[i_trial], digits)))
+
+    @staticmethod
+    def print_accuracy_overall(result_all_df, digits=2):
+
+        sub_names = result_all_df['sub_name']
+        sub_name_list = list(set(sub_names))
+
+        sub_ME, sub_MAE, sub_pearson = [], [], []
+        for sub_name in sub_name_list:
+            sub_df = result_all_df[sub_names == sub_name]
+            errors = sub_df['FPA_true'] - sub_df['FPA_estis']
+            sub_ME.append(np.mean(errors))
+            sub_MAE.append(np.mean(np.abs(errors)))
+            sub_pearson.append(pearsonr(sub_df['FPA_true'], sub_df['FPA_estis'])[0])
+
+        print('Overall accuracy: ' + str(round(np.mean(sub_MAE), digits)) + ' ± ' + str(round(np.std(sub_MAE), digits)), end=' deg, ')
+        print(str(round(np.mean(sub_ME), digits)) + ' ± ' + str(round(np.std(sub_ME), digits)), end=' deg, and ')
+        print(str(round(np.mean(sub_pearson), digits+1)) + ' ± ' + str(round(np.std(sub_pearson), digits+1)))
 
 
     @staticmethod
@@ -184,6 +310,11 @@ class ErrorBarFigure(BaseFigure):
     @staticmethod
     def root_mean_fun(data):
         output_data = np.sqrt(np.average(data ** 2, axis=0))
+        return output_data
+
+    @staticmethod
+    def mean_absolute_fun(data):
+        output_data = np.mean(np.abs(data))
         return output_data
 
     # @staticmethod
@@ -349,11 +480,11 @@ class ErrorBarFigure(BaseFigure):
         plt.legend([bars[0], bars[-1]], FPA_NAME_LIST_HS[1:])
 
     @staticmethod
-    def draw_ebars(means, stds, cate_id_list, x_locs=None):
+    def draw_ebars(means, stds, cate_id_list, x_locs=None, ecolor='black'):
         if x_locs == None:
             x_locs = range(len(cate_id_list))
         ebar, caplines, barlinecols = plt.errorbar(x_locs, means, stds,
-                                                   capsize=0, ecolor='black', fmt='none', lolims=True, uplims=True,
+                                                   capsize=0, ecolor=ecolor, fmt='none', lolims=True, uplims=True,
                                                    elinewidth=LINE_WIDTH)
         for i_cap in range(2):
             caplines[i_cap].set_marker('_')

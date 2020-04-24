@@ -34,7 +34,6 @@ class InitFPA:
         for i_sub in range(len(SUB_NAMES_HS)):
             sub_folder = SUB_NAMES_HS[i_sub]
             self.init_sub_info(sub_folder)
-            # self.show_step_acc()
             step_result_df, summary_result_df = self.backward_fpa_estimation(step_result_df, summary_result_df)
         summary_result_df = self.format_result_summary(summary_result_df)
         self.save_result_df('../3_FPA_Haisheng/result_conclusion/' + self.test_date + '/step_result', step_result_df)
@@ -75,8 +74,6 @@ class InitFPA:
 
             acc_IMU_rotated = self.get_rotated_acc(self._placement_R_foot_sensor, gait_data_df, euler_angles_esti)
             FPA_estis = self.get_FPA_via_max_acc(acc_IMU_rotated, steps, start_percent=0.6, end_percent=1.2)
-            # FPA_estis = self.get_FPA_via_acc_before_strike_ratio_portion_of_swing(
-            #     acc_IMU_rotated, steps, start_percent=0.6, end_percent=1.2)     # best combos are [0.5, 1], [0.6, 1.2]
             FPA_tbme = gait_param_df['FPA_tbme']
 
             step_flags = np.zeros(FPA_estis.shape)
@@ -170,15 +167,15 @@ class InitFPA:
 
     def param_optimizer(self):
         summary_result_df = pd.DataFrame()
-        for param in np.arange(2, 16, 2):
+        for param in range(24, 31, 2):
             print(param)
             for param2 in [0]:
                 fpa_true_list, fpa_esti_list = [], []
-                for i_sub in range(len(SUB_NAMES_HS)):
+                for i_sub in range(12):
                     sub_folder = SUB_NAMES_HS[i_sub]
                     self.init_sub_info(sub_folder)
 
-                    for trial_id in range(4, 7):
+                    for trial_id in range(7):
                         self.current_trial = TRIAL_NAMES_HS[trial_id]
 
                         gait_data_path = self.base_path + TRIAL_NAMES_HS[trial_id] + '.csv'
@@ -189,24 +186,21 @@ class InitFPA:
                         FPA_true = gait_param_df['FPA_true'].values.reshape(-1, 1)
                         steps, stance_phase_flag = self.initalize_steps_and_stance_phase(gait_data_df, gait_param_df)
 
-                        euler_angles_esti = self.get_euler_angles_gradient_decent_from_stance(
-                            gait_data_df, stance_phase_flag, base_correction_coeff=0.01)
-
+                        euler_angles_esti = self.get_euler_angles_complementary_from_stance(
+                            gait_data_df, stance_phase_flag)
                         acc_IMU_rotated = self.get_rotated_acc(self._placement_R_foot_sensor, gait_data_df,
-                                                               euler_angles_esti, acc_cut_off_fre=param)
-                        FPA_estis = self.get_FPA_via_acc_before_strike_ratio_portion_of_swing(acc_IMU_rotated, steps,
-                                                                                              start_percent=0.6,
-                                                                                              end_percent=1.2)
+                                                               euler_angles_esti)
+                        FPA_estis = self.get_FPA_via_max_acc(acc_IMU_rotated, steps, start_percent=0.6, end_percent=1.2, span=param)
 
                         fpa_true_temp, fpa_esti_temp = ProcessorFPA.compare_result(FPA_estis, FPA_true, steps)
-                        fpa_true_list.extend(fpa_true_temp[3:-3])
-                        fpa_esti_list.extend(fpa_esti_temp[3:-3])
+                        fpa_true_list.extend(fpa_true_temp[10:-10])
+                        fpa_esti_list.extend(fpa_esti_temp[10:-10])
                 pearson_coeff, RMSE, mean_error = Evaluation._get_all_scores(
                     np.array(fpa_true_list), np.array(fpa_esti_list), precision=3)
                 summary_result_df = Evaluation.insert_prediction_result(
                     summary_result_df, param, pearson_coeff, RMSE, mean_error)
         summary_result_df = self.format_result_summary(summary_result_df)
-        self.save_result_df('../3_FPA_Haisheng/result_conclusion/param_search/summary_result', summary_result_df)
+        self.save_result_df('../3_FPA_Haisheng/result_conclusion/param_search/span', summary_result_df)
 
     @staticmethod
     def format_result_summary(summary_result_df):
@@ -425,7 +419,6 @@ class InitFPA:
         data_len = acc_IMU.shape[0]
         for i_sample in range(data_len):
             dcm_mat = euler2mat(euler_angles[i_sample, 0], euler_angles[i_sample, 1], 0)
-            # dcm_mat = euler2mat(0, -euler_angles[i_sample, 1], -euler_angles[i_sample, 0], 'szyx')      # !!!
             acc_IMU_rotated[i_sample, :] = np.matmul(placement_R_foot_sensor, acc_IMU[i_sample, :].T)
             acc_IMU_rotated[i_sample, :] = np.matmul(dcm_mat, acc_IMU_rotated[i_sample, :].T)
 
@@ -463,7 +456,7 @@ class InitFPA:
                 flag_start = strike + 20
                 flag_end = int(round((strike + off) / 2))
                 for i_sample in range(strike, off):
-                    if all(gyr_magnitude[i_sample:i_sample+5] < 1):
+                    if all(gyr_magnitude[i_sample:i_sample+5] < 1.7):
                         flag_start = i_sample + sample_after_thd
                         break
 
@@ -496,22 +489,32 @@ class InitFPA:
         y = np.convolve(w / w.sum(), x, mode='same')
         return y
 
-    def get_FPA_via_max_acc(self, acc_IMU_rotated, steps, start_percent, end_percent):
+    @staticmethod
+    def smooth_kaiser(x, window_len, beta):
+        w = np.kaiser(window_len, beta)
+        y = np.convolve(w / w.sum(), x, mode='same')
+        return y
+
+    @staticmethod
+    def get_FPA_via_max_acc(acc_IMU_rotated, steps, start_percent, end_percent, span=40, beta=3):
+        """Use the ratio of axis acceleration at the peak norm acc"""
         data_len = acc_IMU_rotated.shape[0]
         FPA_estis = np.zeros([data_len])
 
-        acc_IMU_before_filt = copy.deepcopy(acc_IMU_rotated)
+        acc_IMU_smoothed = copy.deepcopy(acc_IMU_rotated)
 
         for i_axis in range(2):
-            acc_IMU_rotated[:, i_axis] = self.smooth(acc_IMU_rotated[:, i_axis], 40)
-        planar_acc_norm = norm(acc_IMU_rotated[:, :2], axis=1)
+            acc_IMU_smoothed[:, i_axis] = ProcessorFPA.smooth(acc_IMU_rotated[:, i_axis], span, 'hanning')
+            # acc_IMU_rotated[:, i_axis] = self.smooth_kaiser(acc_IMU_rotated[:, i_axis], span, beta)
+
+        planar_acc_norm = norm(acc_IMU_smoothed[:, :2], axis=1)
 
         for i_step in range(len(steps) - 1):
             current_step, next_step = steps[i_step], steps[i_step + 1]
             swing_phase_len = next_step[0] - current_step[1]
             start_sample = int(round(swing_phase_len * start_percent))
             end_sample = int(round(swing_phase_len * end_percent))
-            acc_clip = acc_IMU_rotated[current_step[1] + start_sample:current_step[1] + end_sample, 0:2]
+            acc_clip = acc_IMU_smoothed[current_step[1] + start_sample:current_step[1] + end_sample, 0:2]
             acc_norm_clip = planar_acc_norm[current_step[1] + start_sample:current_step[1] + end_sample]
             acc_norm_max_arg = np.argmax(acc_norm_clip)
 
@@ -521,16 +524,18 @@ class InitFPA:
             acc_max_y = acc_clip[acc_norm_max_arg, 1]
 
             # acc_IMU_before_filt_clip = acc_IMU_before_filt[current_step[1] + start_sample:current_step[1] + end_sample, 0:2]
-            # plt.figure()
-            # plt.plot(acc_clip)
-            # plt.plot(acc_IMU_before_filt_clip)
-            # plt.plot(acc_norm_max_arg, acc_max_x, 'x')
-            # plt.plot(acc_norm_max_arg, acc_max_y, 'x')
-            # plt.show()
+            # if acc_clip.shape[0] < 45:
+            #     plt.plot(acc_clip[:, 0], 'r')
+            #     plt.plot(acc_clip[:, 1], 'g')
+            #     plt.plot(acc_IMU_before_filt_clip)
+            #     plt.plot(acc_norm_max_arg, acc_max_x, 'yx')
+            #     plt.plot(acc_norm_max_arg, acc_max_y, 'yx')
 
             the_FPA_esti = np.arctan2(-acc_max_x, -acc_max_y) * 180 / np.pi
             the_sample = int((next_step[0] + next_step[1]) / 2)
             FPA_estis[the_sample] = the_FPA_esti
+
+        # plt.show()
         return FPA_estis
 
     def get_FPA_via_acc_before_strike_ratio_portion_of_swing(self, acc_IMU_rotated, steps, start_percent, end_percent):
